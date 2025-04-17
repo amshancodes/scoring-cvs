@@ -1,0 +1,46 @@
+{
+    "overall_impression": {
+        "score": 7,
+        "explanation": "This candidate demonstrates strong applied AI/ML engineering experience (6+ years), hands-on LLM/NLP work, and clear evidence of building production-grade RAG systems. They have held senior roles, led teams, and have a track record of deploying scalable AI solutions. The candidate holds a relevant MSc from a reputable UK university and a BE in Computer Science. However, there is no evidence of top-tier university education, published papers at major conferences, or significant open-source contributions. Startup mentality is present but not at a founding or leadership level. No major red flags are present."
+    },
+    "flag_scores": {
+        "ai_ml_experience": {
+            "score": 2,
+            "explanation": "The candidate has 6+ years of AI/ML engineering experience, including senior roles (Senior Machine Learning Engineer at MulticoreWare Inc). They have led teams, optimized models, and delivered measurable results (e.g., 40% latency reduction, 97% model size reduction, AATC Best Paper Award). Strong coding and engineering skills are evident."
+        },
+        "llm_nlp_specialization": {
+            "score": 2,
+            "explanation": "The resume highlights 2+ years of LLM/NLP experience, including building LLM-powered RAG pipelines, optimizing BERT/Transformer models, and training an open-source Mamba Hybrid LLM. There is evidence of technical depth and product impact (e.g., automated customer support, award-winning model optimizations)."
+        },
+        "rag_implementation": {
+            "score": 2,
+            "explanation": "Clear evidence of building an end-to-end LLM-powered RAG pipeline for automated ticket resolution at Ticket Buddy, with a focus on high accuracy and scalability. This is described as a production-grade system with direct product impact."
+        },
+        "startup_mentality": {
+            "score": 1,
+            "explanation": "The candidate has experience in smaller companies (Ticket Buddy, Takvaviya Technologies) and demonstrates hands-on ownership of projects and team leadership. However, there is no evidence of a founding role or 2+ years in a true startup environment."
+        },
+        "stem_degree": {
+            "score": 1,
+            "explanation": "The candidate holds an MSc in Artificial Intelligence from Queen Mary University of London (QMUL) and a BE in Computer Science from Anna University. QMUL is a reputable UK university but not considered top-tier (like Oxford, Cambridge, Imperial, UCL, ETH Zurich)."
+        },
+        "red_flags": {
+            "score": 0,
+            "explanation": "No major red flags. Employment history is stable, with logical progression. No unexplained gaps or job-hopping. All skills are relevant to the role."
+        }
+    },
+    "total_score": 8,
+    "critical_score": 6,
+    "strengths": [
+        "Extensive hands-on AI/ML engineering experience with measurable results",
+        "Strong LLM/NLP specialization, including production RAG systems and model optimization",
+        "Demonstrated ability to lead teams and deliver scalable, real-world AI solutions"
+    ],
+    "areas_for_improvement": [
+        "No evidence of published papers at top NLP/ML conferences or significant open-source contributions",
+        "STEM degrees from reputable but not top-tier universities",
+        "Limited direct experience in founding or early-stage startup roles"
+    ],
+    "summary": "The candidate is a highly capable applied AI/ML engineer with deep experience in LLMs, NLP, and production-grade RAG systems. They have a proven track record of delivering impactful AI solutions and leading technical teams. While their academic pedigree and research visibility are not at the highest level, their practical skills and engineering leadership are strong. They would be a valuable addition to a founding team, especially if research publication is not a strict requirement.",
+    "recommendation": "Consider"
+}

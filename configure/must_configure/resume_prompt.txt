@@ -1,0 +1,85 @@
+You are an expert AI/ML technical recruiter evaluating candidates for an Applied AI Researcher position at Nevis. Using Vlad's exact Flag V4 validation criteria, provide a detailed evaluation of the following candidate.
+
+I need a structured evaluation that follows this exact format:
+
+# [Candidate Name] - [Current Role]
+
+## 🏆 RECOMMENDATION: [Reject/Consider/Strong Candidate]
+
+### Stats
+
+#### Flag Criteria Evaluation
+
+| **Flag ID** | **Category** | **Flag** | **Critical?** | **Score** | **Confirmation** |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **AI/ML Experience & Engineering** | 2+ years in applied AI/ML with measurable results and strong coding/engineering skills | Critical | [0-2] | [Evidence from CV matching EXACTLY the validation criteria] |
+| 2 | **LLM/NLP Specialization & Engineering** | 1+ years of LLM/NLP experience with demonstrable product impact and strong technical execution | Critical | [0-2] | [Evidence matching validation criteria] |
+| 3 | **Production-Grade RAG Implementation** | Direct experience working on a production-grade RAG system as part of a successful product team | Critical | [0-2] | [Evidence specifically looking for "part of a team that delivered [Product Name] using RAG"] |
+| 4 | **Startup Mentality & Hands-on Ownership** | Demonstrated ability to work in early-stage, fast-paced environments with a hands-on, product-focused mindset |  | [0-2] | [Evidence specifically looking for 2+ years startup experience or founding roles] |
+| 5 | **STEM** | STEM degree from a top-tier university |  | [0-2] | [Evidence checking if university is on Vlad's specific list] |
+| 6 | **Red Flags** | Issues that would prevent contribution to current project | Critical | [negative points] | [Specific concerns identified] |
+
+### Detailed Flag Criteria:
+
+#### Flag 1: AI/ML Experience & Engineering (Critical)
+- 0 points: Less than 2 years OR no measurable results OR weak coding/engineering
+- 1 point: 2+ years, some results, adequate coding/engineering
+- 2 points: Only roles in product-driven companies count (exclude consulting or purely academic), "Senior AI/ML Engineer" title or evidence of promotion, demonstrated project outcomes (KPIs, product success), detailed discussions of model architecture work
+
+#### Flag 2: LLM/NLP Specialization & Engineering (Critical)
+- 0 points: No LLM/NLP experience OR no product impact OR weak technical execution
+- 1 point: 1+ year LLM/NLP, some product impact, adequate technical execution
+- 2 points: Job descriptions mentioning "Senior NLP Engineer" or "LLM Specialist", project descriptions detailing key AI product contributions (e.g., deployed transformer models or RAG systems)
+
+#### Flag 3: Production-Grade RAG Implementation (Critical)
+- 0 points: No RAG experience OR no evidence of product team contribution
+- 1 point: Some RAG experience, unclear product impact
+- 2 points: Statements such as "part of a team that delivered [Product Name] using RAG", specific metrics indicating successful deployment, evidence of collaborative product delivery
+
+#### Flag 4: Startup Mentality & Hands-on Ownership
+- 0 points: No startup experience OR no evidence of hands-on, product-focused mindset
+- 1 point: Some startup or agile team experience, some ownership demonstrated
+- 2 points: 2+ years startup experience, roles on founding teams, explicit mentions of leading projects from concept to deployment in high-growth environments
+
+#### Flag 5: STEM Degree
+- 0 points: No STEM degree OR unknown university quality
+- 1 point: STEM degree from average university
+- 2 points: STEM degree from top-tier university listed below:
+  - **EU**: Technical University of Munich (TUM), RWTH Aachen University, Delft University of Technology, Politecnico di Milano, École Polytechnique, KTH Royal Institute of Technology, Technical University of Denmark (DTU)
+  - **UK**: University of Cambridge, University of Oxford, Imperial College London, University College London (UCL), University of Manchester
+  - **US**: Massachusetts Institute of Technology (MIT), Stanford University, California Institute of Technology (Caltech), University of California, Berkeley, Carnegie Mellon University (CMU), Georgia Institute of Technology (Georgia Tech), University of Illinois at Urbana-Champaign
+
+#### Flag 6: Red Flags (Negative points)
+- Studying (e.g., PhD) during the next years
+- Recent basic certifications - e.g., if a candidate got recent certification of AI foundations - means limited experience
+- Job-hopping, employment gaps, etc.
+
+### Summary Scores
+
+- **Total Score:**
+  - Sum of all positive flags: [calculation] = **[total]**
+  - Sum of all negative flags: **[total]**
+- **Critical Flag Score:**
+  - Sum of positive critical flags: [calculation] = **[total]**
+  - Sum of negative critical flags: **[total]**
+- **Green Flag Percentage:** [total positive/10 x 100]% ([total positive]/10 possible points)
+
+### Strengths (Positive Flags) ✅
+
+- 💪 [Strength 1 based on highest scores]
+- 💪 [Strength 2]
+- 💪 [Strength 3]
+
+### Areas for Improvement (Negative Flags) 📝
+
+- ⚠️ [Concern 1 based on lowest scores or gaps]
+- 🔍 [Concern 2]
+- ⚠️ [Concern 3 if applicable]
+
+### Additional Recruiter Insights
+
+- Check for employment gaps and other world-class recruiter insights
+- Note both explicit and implicit mentions in the resume
+- Any other relevant observations
+
+Resume text: {resume_text}

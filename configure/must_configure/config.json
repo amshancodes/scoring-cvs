@@ -1,0 +1,8 @@
+{
+    "pdf_path": "PDF-RESUMES/Adam_Jinnah_JuiceboxExport_2025-04-16_10.pdf",
+    "output_path": "{name}_evaluation.md",
+    "model": "gpt-4.1-2025-04-14",
+    "projects_folder": "PDF-PROJECTS",
+    "current_project": "new-batch",
+    "output_in_project_folder": true
+} 
