@@ -25,7 +25,9 @@ from utils.ui_components import (
     show_evaluation_summary,
     show_footer,
     show_api_key_input,
-    download_button
+    download_button,
+    copy_button,
+    show_markdown_content
 )
 
 # Set page configuration
@@ -39,6 +41,8 @@ if 'resume_text' not in st.session_state:
     st.session_state.resume_text = ""
 if 'evaluation_result' not in st.session_state:
     st.session_state.evaluation_result = None
+if 'markdown_result' not in st.session_state:
+    st.session_state.markdown_result = ""
 if 'filename' not in st.session_state:
     st.session_state.filename = ""
 if 'selected_template_index' not in st.session_state:
@@ -70,7 +74,40 @@ def reset_app():
     st.session_state.step = 1
     st.session_state.resume_text = ""
     st.session_state.evaluation_result = None
+    st.session_state.markdown_result = ""
     st.session_state.filename = ""
+
+# Create markdown content from evaluation result
+def create_markdown(evaluation, filename):
+    # Handle missing fields gracefully
+    categories = [
+        ('overall_impression', 'Overall Impression'),
+        ('technical_skills', 'Technical Skills'), 
+        ('experience', 'Experience'),
+        ('education', 'Education'),
+        ('projects', 'Projects')
+    ]
+    
+    # Start building markdown
+    md = f"# Resume Evaluation: {filename}\n\n"
+    
+    # Add summary if available
+    if 'summary' in evaluation:
+        md += f"## Summary\n{evaluation['summary']}\n\n"
+        
+    # Add total score if available
+    if 'total_score' in evaluation:
+        md += f"## Overall Score: {evaluation['total_score']}/50\n\n"
+    
+    # Add individual categories
+    for key, label in categories:
+        if key in evaluation and isinstance(evaluation[key], dict):
+            category = evaluation[key]
+            score = category.get('score', '-')
+            explanation = category.get('explanation', 'No details provided.')
+            md += f"## {label}: {score}/10\n{explanation}\n\n"
+    
+    return md.strip()
 
 # App header
 show_header()
@@ -267,7 +304,7 @@ elif st.session_state.step == 2:
         if st.button("← Previous"):
             go_to_previous_step()
     with col2:
-        if st.button("Next: Evaluate"):
+        if st.button("Start Evaluation"):
             # Check if API key is available before proceeding
             api_key = get_api_key()
             if not api_key:
@@ -277,217 +314,178 @@ elif st.session_state.step == 2:
 
 elif st.session_state.step == 3:
     # Step 3: Evaluation Process
-    st.markdown("## Step 3: Processing")
+    st.markdown("## Evaluating Resume")
     
-    if st.session_state.evaluation_result is None:
-        # Get API key
-        api_key = get_api_key()
-        if not api_key:
-            st.error("OpenAI API key not found. Please contact the administrator.")
-            if st.button("← Go Back to Configuration"):
-                go_to_previous_step()
-                st.rerun()
-            st.stop()
-            
-        # Create progress indicators
+    # Get API key
+    api_key = get_api_key()
+    if not api_key:
+        st.error("OpenAI API key not found. Please contact the administrator.")
+        if st.button("← Go Back"):
+            go_to_previous_step()
+        st.stop()
+    
+    # Main content area with centered progress indicators
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
         progress_bar = st.progress(0)
         status_text = st.empty()
-        result_area = st.empty()
+        result_preview = st.empty()
         
-        # Show progress updates
-        status_text.text("Extracting resume information...")
-        progress_bar.progress(20)
-        time.sleep(0.5) # Simulate processing time
-        
-        status_text.text("Analyzing candidate profile...")
-        progress_bar.progress(40)
-        time.sleep(0.5)
-        
-        status_text.text("Evaluating technical skills...")
-        progress_bar.progress(60)
-        time.sleep(0.5)
-        
-        status_text.text("Generating comprehensive assessment...")
-        progress_bar.progress(80)
-        time.sleep(0.5)
-        
-        try:
-            # Get the selected template
-            templates = get_available_templates()
-            selected_template = templates[st.session_state.selected_template_index]
+        # Only run the evaluation if we don't already have a result
+        if not st.session_state.evaluation_result:
+            status_text.text("Starting evaluation...")
+            progress_bar.progress(10)
+            time.sleep(0.3)
             
-            # Use default model (GPT-4.1)
-            models = get_available_models()
-            selected_model = models[0]  # Always use the first (best) model
+            # Show progress updates
+            status_text.text("Analyzing resume content...")
+            progress_bar.progress(30)
+            time.sleep(0.5)
             
-            # Get prompts (including any custom ones)
-            if 'custom_system_prompt' in selected_template:
-                system_prompt = selected_template['custom_system_prompt']
-            else:
-                system_prompt = read_prompt_file(selected_template['system_prompt'])
+            status_text.text("Evaluating skills and experience...")
+            progress_bar.progress(50)
+            time.sleep(0.5)
+            
+            status_text.text("Generating assessment...")
+            progress_bar.progress(70)
+            time.sleep(0.5)
+            
+            try:
+                # Get the selected template
+                templates = get_available_templates()
+                selected_template = templates[st.session_state.selected_template_index]
                 
-            if 'custom_user_prompt' in selected_template:
-                user_prompt = selected_template['custom_user_prompt']
-            else:
-                user_prompt = read_prompt_file(selected_template['user_prompt'])
-            
-            # Update status
-            status_text.text("Making API request to OpenAI...")
-            progress_bar.progress(90)
-            
-            # Run the evaluation
-            evaluation_result = evaluate_resume_with_ai(
-                st.session_state.resume_text,
-                system_prompt,
-                user_prompt,
-                selected_model['value'],
-                api_key
-            )
-            
-            # Update progress
-            status_text.text("Evaluation complete!")
-            progress_bar.progress(100)
-            
-            # Store the result
-            st.session_state.evaluation_result = evaluation_result
-            
-            # Show partial result preview
-            with result_area.container():
+                # Use default model (GPT-4.1)
+                models = get_available_models()
+                selected_model = models[0]  # Always use the first (best) model
+                
+                # Get prompts (including any custom ones)
+                if 'custom_system_prompt' in selected_template:
+                    system_prompt = selected_template['custom_system_prompt']
+                else:
+                    system_prompt = read_prompt_file(selected_template['system_prompt'])
+                    
+                if 'custom_user_prompt' in selected_template:
+                    user_prompt = selected_template['custom_user_prompt']
+                else:
+                    user_prompt = read_prompt_file(selected_template['user_prompt'])
+                
+                # Update status
+                status_text.text("Sending request to OpenAI...")
+                progress_bar.progress(85)
+                
+                # Run the evaluation
+                evaluation_result = evaluate_resume_with_ai(
+                    st.session_state.resume_text,
+                    system_prompt,
+                    user_prompt,
+                    selected_model['value'],
+                    api_key
+                )
+                
+                # Store the result in session state
+                st.session_state.evaluation_result = evaluation_result
+                
+                # Create markdown representation
+                markdown_result = create_markdown(evaluation_result, st.session_state.filename)
+                st.session_state.markdown_result = markdown_result
+                
+                # Update progress
+                status_text.text("Evaluation complete!")
+                progress_bar.progress(100)
+                time.sleep(0.5)
+                
+                # Clear the progress indicators
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Show the evaluation result directly
                 st.success("Evaluation completed successfully!")
-                st.markdown(f"**Overall Score:** {evaluation_result['total_score']}/50")
-                st.markdown(f"**Summary:** {evaluation_result['summary']}")
                 
-                if st.button("View Full Evaluation"):
-                    go_to_next_step()
-                    st.rerun()
-            
-            # Add a button to view full results
-            if st.button("Continue to Results"):
-                go_to_next_step()
-                st.rerun()
+                # Display the markdown content
+                st.subheader("Evaluation Results")
+                show_markdown_content(markdown_result)
                 
-        except Exception as e:
-            progress_bar.empty()
-            status_text.empty()
-            st.error(f"Error during evaluation: {e}")
-            
-            # More detailed error information for easier debugging
-            with st.expander("Error Details"):
-                st.code(str(e))
+                # Add export options
+                st.markdown("### Export Options")
+                col1, col2 = st.columns(2)
+                with col1:
+                    download_button(
+                        markdown_result,
+                        f"{st.session_state.filename.split('.')[0]}_evaluation.md",
+                        "📥 Download as Markdown"
+                    )
                 
-            # Add retry button
-            if st.button("Retry Evaluation"):
-                st.rerun()
+                # Navigation options
+                st.markdown("### Actions")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("← Back to Configuration"):
+                        go_to_step(2)
+                with col2:
+                    if st.button("Evaluate Another Resume"):
+                        reset_app()
                 
-            # Add back button
-            if st.button("← Go Back to Configuration"):
-                go_to_previous_step()
-                st.rerun()
-
-elif st.session_state.step == 4:
-    # Step 4: Results
-    st.markdown("## Step 4: Evaluation Results")
-    
-    if st.session_state.evaluation_result:
-        # Display the evaluation summary
-        show_evaluation_summary(st.session_state.evaluation_result)
-        
-        # Export options
-        st.markdown("### Export Options")
-        col1, col2, col3 = st.columns(3)
-        
-        # Create the markdown content
-        markdown_content = f"""# Resume Evaluation: {st.session_state.filename}
-
-## Overall Score: {st.session_state.evaluation_result['total_score']}/50
-
-### Summary
-{st.session_state.evaluation_result['summary']}
-
-### Overall Impression: {st.session_state.evaluation_result['overall_impression']['score']}/10
-{st.session_state.evaluation_result['overall_impression']['explanation']}
-
-### Technical Skills: {st.session_state.evaluation_result['technical_skills']['score']}/10
-{st.session_state.evaluation_result['technical_skills']['explanation']}
-
-### Experience: {st.session_state.evaluation_result['experience']['score']}/10
-{st.session_state.evaluation_result['experience']['explanation']}
-
-### Education: {st.session_state.evaluation_result['education']['score']}/10
-{st.session_state.evaluation_result['education']['explanation']}
-
-### Projects: {st.session_state.evaluation_result['projects']['score']}/10
-{st.session_state.evaluation_result['projects']['explanation']}
-"""
-        
-        with col1:
-            download_button(
-                markdown_content,
-                f"{st.session_state.filename.split('.')[0]}_evaluation.md",
-                "📥 Download as Markdown"
-            )
+            except Exception as e:
+                # Clear progress indicators
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Show error
+                st.error(f"Error during evaluation: {str(e)}")
+                
+                # More detailed error for debugging
+                with st.expander("Error Details"):
+                    st.code(str(e))
+                
+                # Navigation options after error
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("← Go Back"):
+                        go_to_previous_step()
+                with col2:
+                    if st.button("Try Again"):
+                        st.rerun()
+        else:
+            # We already have results, just display them
+            st.success("Evaluation completed successfully!")
             
-        with col2:
-            download_button(
-                json.dumps(st.session_state.evaluation_result, indent=2),
-                f"{st.session_state.filename.split('.')[0]}_evaluation.json",
-                "📥 Download as JSON"
-            )
+            # Display the markdown content
+            st.subheader("Evaluation Results")
+            show_markdown_content(st.session_state.markdown_result)
             
-        # Navigation
-        st.markdown("### Actions")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("← Back to Configuration"):
-                go_to_step(2)
-        with col2:
-            if st.button("Evaluate Another Resume"):
-                reset_app()
-    else:
-        st.error("No evaluation results available")
-        if st.button("Return to Start"):
-            reset_app()
+            # Add export options
+            st.markdown("### Export Options")
+            col1, col2 = st.columns(2)
+            with col1:
+                download_button(
+                    st.session_state.markdown_result,
+                    f"{st.session_state.filename.split('.')[0]}_evaluation.md",
+                    "📥 Download as Markdown"
+                )
+            
+            # Navigation options
+            st.markdown("### Actions")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("← Back to Configuration"):
+                    go_to_step(2)
+            with col2:
+                if st.button("Evaluate Another Resume"):
+                    reset_app()
 
 # Footer
 show_footer()
 
-# Side information about current step
-with st.sidebar:
-    st.markdown("### Progress")
-    st.progress((st.session_state.step - 1) / 3)
-    
-    current_step_name = {
-        1: "Resume Input",
-        2: "Configuration",
-        3: "Processing",
-        4: "Results"
-    }.get(st.session_state.step, "")
-    
-    st.markdown(f"**Current Step:** {st.session_state.step}. {current_step_name}")
-    
-    # Info about the current file
-    if st.session_state.filename:
-        st.markdown(f"**Current File:** {st.session_state.filename}")
-    
-    # Add info about using internal OpenAI API
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### ℹ️ About This System")
-    st.sidebar.markdown("""
-    This is an internal candidate evaluation system that leverages AI to provide
-    consistent assessments of technical resumes. It uses our organization's 
-    API key and custom evaluation criteria.
-    """)
-    
-    # Help section at the bottom of sidebar
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### Need Help?")
-    with st.sidebar.expander("How to use this app"):
-        st.markdown("""
-        1. **Upload Resume**: Upload a PDF or paste text
-        2. **Configure**: Select evaluation template
-        3. **Process**: Wait for AI evaluation
-        4. **Review**: See detailed assessment and download results
-        """)
+# Add branding in the main content area instead of sidebar
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+    <p style="margin-bottom: 0; color: #666; font-size: 0.9rem;">
+        This is an internal resume evaluation system that leverages AI to provide consistent assessments.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     # This will run when the script is executed directly

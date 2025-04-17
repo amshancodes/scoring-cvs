@@ -66,6 +66,32 @@ def add_custom_css():
             border-radius: 10px;
             margin-bottom: 15px;
         }
+        .copy-btn {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .copy-btn:hover {
+            background-color: #3a7abd;
+        }
+        .copy-btn svg {
+            margin-right: 8px;
+        }
+        .evaluation-md {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: 'Helvetica', sans-serif;
+            line-height: 1.6;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -112,6 +138,23 @@ def show_evaluation_summary(evaluation):
     </div>
     """, unsafe_allow_html=True)
     
+    # Check if total_score exists, otherwise try to calculate it
+    if 'total_score' not in evaluation:
+        try:
+            # Try to calculate total score from individual scores
+            total = 0
+            for category in ['overall_impression', 'technical_skills', 'experience', 'education', 'projects']:
+                if category in evaluation and 'score' in evaluation[category]:
+                    total += evaluation[category]['score']
+            evaluation['total_score'] = total
+        except:
+            # If calculation fails, set a placeholder
+            evaluation['total_score'] = "-"
+    
+    # Same for summary
+    if 'summary' not in evaluation:
+        evaluation['summary'] = "No summary provided in the evaluation."
+    
     # Total score
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -129,36 +172,24 @@ def show_evaluation_summary(evaluation):
     
     st.markdown("---")
     
-    # Individual scores
-    show_score_section(
-        evaluation['overall_impression']['score'], 10, 
-        "Overall Impression", 
-        evaluation['overall_impression']['explanation']
-    )
+    # Individual scores - with error handling for each section
+    categories = [
+        ('overall_impression', 'Overall Impression'),
+        ('technical_skills', 'Technical Skills'),
+        ('experience', 'Experience'),
+        ('education', 'Education'),
+        ('projects', 'Projects')
+    ]
     
-    show_score_section(
-        evaluation['technical_skills']['score'], 10, 
-        "Technical Skills", 
-        evaluation['technical_skills']['explanation']
-    )
-    
-    show_score_section(
-        evaluation['experience']['score'], 10, 
-        "Experience", 
-        evaluation['experience']['explanation']
-    )
-    
-    show_score_section(
-        evaluation['education']['score'], 10, 
-        "Education", 
-        evaluation['education']['explanation']
-    )
-    
-    show_score_section(
-        evaluation['projects']['score'], 10, 
-        "Projects", 
-        evaluation['projects']['explanation']
-    )
+    for category_key, category_label in categories:
+        if category_key in evaluation and isinstance(evaluation[category_key], dict):
+            category = evaluation[category_key]
+            score = category.get('score', '-')
+            explanation = category.get('explanation', 'No details provided.')
+            show_score_section(score, 10, category_label, explanation)
+        else:
+            # Show placeholder if category is missing
+            show_score_section('-', 10, category_label, 'Information not available.')
 
 def show_footer():
     """Display the application footer"""
@@ -216,4 +247,31 @@ def download_button(object_to_download, download_filename, button_text):
     """
     
     dl_link = custom_css + f'<a href="data:file/txt;base64,{b64}" id="{button_uuid}" download="{download_filename}">{button_text}</a>'
-    return st.markdown(dl_link, unsafe_allow_html=True) 
+    return st.markdown(dl_link, unsafe_allow_html=True)
+
+def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
+    """Create a button that copies text to clipboard using JavaScript"""
+    # Escape any quotes in the text to copy
+    escaped_text = text_to_copy.replace('`', '\\`').replace('"', '\\"')
+    
+    copy_button_html = f"""
+    <button class="copy-btn" onclick="navigator.clipboard.writeText(`{escaped_text}`).then(function() {{ 
+        this.innerHTML = '✓ Copied!'; 
+        setTimeout(() => this.innerHTML = '{button_text}', 2000);
+    }}.bind(this))">
+        {button_text}
+    </button>
+    """
+    
+    return st.markdown(copy_button_html, unsafe_allow_html=True)
+
+def show_markdown_content(markdown_content, with_copy=True):
+    """Display markdown content in a nice format with optional copy button"""
+    # Display the markdown content in a styled container
+    st.markdown("<div class='evaluation-md'>", unsafe_allow_html=True)
+    st.markdown(markdown_content)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Add copy button if requested
+    if with_copy:
+        copy_button(markdown_content) 
