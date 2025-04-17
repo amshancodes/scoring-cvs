@@ -4,6 +4,8 @@ UI components for the Streamlit app
 
 import streamlit as st
 import base64
+import hashlib
+import re
 from pathlib import Path
 
 def set_page_config():
@@ -78,6 +80,8 @@ def add_custom_css():
             align-items: center;
             margin: 10px 0;
             transition: background-color 0.3s;
+            width: 100%;
+            max-width: 300px;
         }
         .copy-btn:hover {
             background-color: #3a7abd;
@@ -95,23 +99,21 @@ def add_custom_css():
             max-height: 500px;
             overflow-y: auto;
         }
-        /* Animation for copy feedback */
-        @keyframes fadeInOut {
-            0% { opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-        .copy-success {
+        .toast-message {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #4caf50;
+            bottom: 30px;
+            right: 30px;
+            background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
+            padding: 16px;
             border-radius: 5px;
             z-index: 9999;
-            animation: fadeInOut 2s forwards;
+            opacity: 0;
+            transition: opacity 0.5s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .show-toast {
+            opacity: 1;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -272,58 +274,69 @@ def download_button(object_to_download, download_filename, button_text):
 
 def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
     """Create a button that copies text to clipboard using JavaScript"""
-    # Generate a unique ID for this button
-    button_id = f"copy_button_{hash(text_to_copy)}"[-10:]
+    # Create a unique ID based on hashing a portion of the content
+    text_hash = hashlib.md5(text_to_copy[:100].encode()).hexdigest()[:10]
+    button_id = f"copy_btn_{text_hash}"
+    toast_id = f"toast_{text_hash}"
+    textarea_id = f"text_area_{text_hash}"
     
-    # Process the text to make it safe for JavaScript
-    # Replace line breaks with explicit newlines for JS
-    js_safe_text = text_to_copy.replace("\n", "\\n").replace("\r", "").replace("'", "\\'").replace('"', '\\"')
+    # Create a hidden textarea with the content
+    # This approach is more reliable than trying to pass the content directly to JS
+    hidden_field = f"""
+    <textarea 
+        id="{textarea_id}" 
+        style="position: absolute; left: -9999px;" 
+        readonly
+    >{text_to_copy}</textarea>
+    """
     
-    # Create the JavaScript function to handle copying
-    copy_js = f"""
+    # Toast notification
+    toast_html = f"""
+    <div id="{toast_id}" class="toast-message">
+        ✅ Copied to clipboard!
+    </div>
+    """
+    
+    # JavaScript to handle copying and showing/hiding toast
+    js_code = f"""
     <script>
-    function copyToClipboard{button_id}() {{
-        navigator.clipboard.writeText('{js_safe_text}')
-            .then(() => {{
-                // Show success message
-                const successMsg = document.createElement('div');
-                successMsg.className = 'copy-success';
-                successMsg.textContent = '✓ Copied to clipboard!';
-                document.body.appendChild(successMsg);
-                
-                // Change button text to show success
-                document.getElementById('{button_id}').innerHTML = '✓ Copied!';
-                
-                // Remove success message after animation
-                setTimeout(() => {{
-                    if (successMsg.parentNode) {{
-                        document.body.removeChild(successMsg);
-                    }}
-                }}, 2000);
-                
-                // Reset button text
-                setTimeout(() => {{
-                    document.getElementById('{button_id}').innerHTML = '{button_text}';
-                }}, 2000);
-            }})
-            .catch(err => {{
-                console.error('Failed to copy: ', err);
-                // Show error message briefly
-                document.getElementById('{button_id}').innerHTML = '❌ Failed to copy';
-                setTimeout(() => {{
-                    document.getElementById('{button_id}').innerHTML = '{button_text}';
-                }}, 2000);
-            }});
-    }}
+    document.getElementById("{button_id}").addEventListener("click", function() {{
+        // Get the text field
+        var textarea = document.getElementById("{textarea_id}");
+        
+        // Select the text
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile devices
+        
+        // Copy the text
+        document.execCommand("copy");
+        
+        // Update button text
+        this.innerHTML = "✅ Copied!";
+        
+        // Show toast
+        var toast = document.getElementById("{toast_id}");
+        toast.classList.add("show-toast");
+        
+        // Hide toast after 3 seconds
+        setTimeout(function() {{
+            toast.classList.remove("show-toast");
+        }}, 3000);
+        
+        // Reset button text after 3 seconds
+        setTimeout(() => {{
+            document.getElementById("{button_id}").innerHTML = "{button_text}";
+        }}, 3000);
+    }});
     </script>
     """
     
-    # Create the button HTML
+    # Button HTML
     button_html = f"""
-    <button id="{button_id}" class="copy-btn" onclick="copyToClipboard{button_id}()">
-        {button_text}
-    </button>
-    {copy_js}
+    <button id="{button_id}" class="copy-btn">{button_text}</button>
+    {hidden_field}
+    {toast_html}
+    {js_code}
     """
     
     return st.markdown(button_html, unsafe_allow_html=True)

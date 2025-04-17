@@ -43,6 +43,8 @@ if 'evaluation_result' not in st.session_state:
     st.session_state.evaluation_result = None
 if 'markdown_result' not in st.session_state:
     st.session_state.markdown_result = ""
+if 'raw_api_response' not in st.session_state:
+    st.session_state.raw_api_response = ""
 if 'filename' not in st.session_state:
     st.session_state.filename = ""
 if 'selected_template_index' not in st.session_state:
@@ -75,47 +77,60 @@ def reset_app():
     st.session_state.resume_text = ""
     st.session_state.evaluation_result = None
     st.session_state.markdown_result = ""
+    st.session_state.raw_api_response = ""
     st.session_state.filename = ""
 
-# Create markdown content from evaluation result - SIMPLIFIED VERSION
-def create_markdown(evaluation, filename):
+# Create markdown content from API response - uses the actual API response
+def create_markdown_from_api(response, filename):
     """
-    Create a simple markdown representation of the resume evaluation.
-    For the MVP, we'll use a simplified version without relying on specific API result structure.
+    Create markdown content from the API response.
+    This uses the actual API response to generate the markdown.
     """
-    # Create a dummy evaluation that looks good
-    markdown = f"""# Resume Evaluation: {filename}
-
-## Summary
-This candidate shows good technical skills and experience in machine learning and software engineering. 
-Their background suggests capability in designing and implementing AI systems.
-
-## Overall Assessment
-The resume demonstrates relevant experience that aligns with the position requirements.
-Key strengths include technical proficiency, project experience, and educational background.
-
-## Technical Skills: 8/10
-Strong technical foundation with experience in machine learning frameworks and programming languages.
-Experience includes work with Python, TensorFlow, and cloud deployment technologies.
-
-## Experience: 7/10
-Relevant professional experience in AI/ML roles with demonstrable project outcomes.
-Shows progression in responsibilities and technical complexity of work.
-
-## Education: 7/10
-Solid educational background in a relevant technical field.
-Formal education appears to be supplemented with continued professional development.
-
-## Projects: 8/10
-Completed projects demonstrate practical application of technical skills.
-Projects show ability to deliver solutions that address real-world problems.
-
-## Recommendations
-- Consider exploring the candidate's experience with specific technologies needed for this role
-- Assess depth of knowledge in areas most critical to current project needs
-- Evaluate ability to work in the team structure and culture
-"""
-    return markdown
+    try:
+        # If the response is JSON as expected, use it directly
+        if isinstance(response, dict):
+            # Start with the resume name
+            markdown = f"# Resume Evaluation: {filename}\n\n"
+            
+            # If response has a standard format, extract fields
+            if 'total_score' in response or 'summary' in response:
+                # Add summary if available
+                if 'summary' in response:
+                    markdown += f"## Summary\n{response['summary']}\n\n"
+                
+                # Add total score if available
+                if 'total_score' in response:
+                    markdown += f"## Overall Score: {response['total_score']}/50\n\n"
+                
+                # Add individual categories
+                categories = [
+                    ('overall_impression', 'Overall Impression'),
+                    ('technical_skills', 'Technical Skills'), 
+                    ('experience', 'Experience'),
+                    ('education', 'Education'),
+                    ('projects', 'Projects')
+                ]
+                
+                for key, label in categories:
+                    if key in response and isinstance(response[key], dict):
+                        category = response[key]
+                        score = category.get('score', '-')
+                        explanation = category.get('explanation', 'No details provided.')
+                        markdown += f"## {label}: {score}/10\n{explanation}\n\n"
+            else:
+                # If it doesn't match our expected format, just dump the entire response
+                markdown += "## Evaluation Results\n"
+                markdown += json.dumps(response, indent=2)
+        else:
+            # If not a dict, handle as string or raw content
+            markdown = f"# Resume Evaluation: {filename}\n\n"
+            markdown += str(response)
+        
+        return markdown.strip()
+        
+    except Exception as e:
+        # If something goes wrong, return a basic evaluation
+        return f"# Resume Evaluation: {filename}\n\nError generating formatted output: {str(e)}"
 
 # App header
 show_header()
@@ -340,7 +355,7 @@ elif st.session_state.step == 3:
         result_preview = st.empty()
         
         # Only run the evaluation if we don't already have a result
-        if not st.session_state.markdown_result:
+        if not st.session_state.evaluation_result:
             status_text.text("Starting evaluation...")
             progress_bar.progress(10)
             time.sleep(0.3)
@@ -382,23 +397,24 @@ elif st.session_state.step == 3:
                 status_text.text("Sending request to OpenAI...")
                 progress_bar.progress(85)
                 
-                try:
-                    # Try to run the evaluation, but use a fallback if it fails
-                    evaluation_result = evaluate_resume_with_ai(
-                        st.session_state.resume_text,
-                        system_prompt,
-                        user_prompt,
-                        selected_model['value'],
-                        api_key
-                    )
-                    st.session_state.evaluation_result = evaluation_result
-                except Exception as e:
-                    # If the evaluation fails, use an empty dict as a fallback
-                    st.session_state.evaluation_result = {}
-                    # We'll still continue and use our simplified markdown generator
+                # Run the evaluation
+                evaluation_result = evaluate_resume_with_ai(
+                    st.session_state.resume_text,
+                    system_prompt,
+                    user_prompt,
+                    selected_model['value'],
+                    api_key
+                )
                 
-                # Create markdown representation - using the simplified version that doesn't rely on specific fields
-                markdown_result = create_markdown({}, st.session_state.filename)
+                # Store the result in session state
+                st.session_state.evaluation_result = evaluation_result
+                
+                # Store raw response for debugging
+                if '_raw_response' in evaluation_result:
+                    st.session_state.raw_api_response = evaluation_result['_raw_response']
+                
+                # Create markdown representation using the API response
+                markdown_result = create_markdown_from_api(evaluation_result, st.session_state.filename)
                 st.session_state.markdown_result = markdown_result
                 
                 # Update progress
@@ -427,6 +443,14 @@ elif st.session_state.step == 3:
                         "📥 Download as Markdown"
                     )
                 
+                # Add debugging expander
+                with st.expander("Debug Information"):
+                    st.markdown("### Raw API Response")
+                    if st.session_state.raw_api_response:
+                        st.code(st.session_state.raw_api_response, language="json")
+                    else:
+                        st.code(json.dumps(evaluation_result, indent=2), language="json")
+                
                 # Navigation options
                 st.markdown("### Actions")
                 col1, col2 = st.columns(2)
@@ -442,26 +466,14 @@ elif st.session_state.step == 3:
                 progress_bar.empty()
                 status_text.empty()
                 
-                # Even if an exception occurs, we'll still generate a basic markdown result
-                markdown_result = create_markdown({}, st.session_state.filename)
-                st.session_state.markdown_result = markdown_result
+                # Show error
+                st.error(f"Error during evaluation: {str(e)}")
                 
-                # Show success despite the error (for MVP purposes)
-                st.success("Evaluation completed!")
-                
-                # Display the markdown content
-                st.subheader("Evaluation Results")
-                show_markdown_content(markdown_result)
-                
-                # Add export options
-                st.markdown("### Export Options")
-                col1, col2 = st.columns(2)
-                with col1:
-                    download_button(
-                        markdown_result,
-                        f"{st.session_state.filename.split('.')[0]}_evaluation.md",
-                        "📥 Download as Markdown"
-                    )
+                # More detailed error information for debugging
+                with st.expander("Error Details"):
+                    st.code(str(e))
+                    if hasattr(e, '__dict__'):
+                        st.json(e.__dict__)
                 
                 # Navigation options
                 st.markdown("### Actions")
@@ -470,8 +482,10 @@ elif st.session_state.step == 3:
                     if st.button("← Back to Configuration"):
                         go_to_step(2)
                 with col2:
-                    if st.button("Evaluate Another Resume"):
-                        reset_app()
+                    if st.button("Try Again"):
+                        # Clear the result to force re-evaluation
+                        st.session_state.evaluation_result = None
+                        st.rerun()
         else:
             # We already have results, just display them
             st.success("Evaluation completed successfully!")
@@ -489,6 +503,14 @@ elif st.session_state.step == 3:
                     f"{st.session_state.filename.split('.')[0]}_evaluation.md",
                     "📥 Download as Markdown"
                 )
+            
+            # Add debugging expander
+            with st.expander("Debug Information"):
+                st.markdown("### Raw API Response")
+                if st.session_state.raw_api_response:
+                    st.code(st.session_state.raw_api_response, language="json")
+                else:
+                    st.code(json.dumps(st.session_state.evaluation_result, indent=2), language="json")
             
             # Navigation options
             st.markdown("### Actions")
