@@ -41,14 +41,20 @@ if 'evaluation_result' not in st.session_state:
     st.session_state.evaluation_result = None
 if 'filename' not in st.session_state:
     st.session_state.filename = ""
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
 if 'selected_template_index' not in st.session_state:
     st.session_state.selected_template_index = 0
 if 'selected_model_index' not in st.session_state:
     st.session_state.selected_model_index = 0
 if 'show_password' not in st.session_state:
     st.session_state.show_password = False
+
+# Get API key from Streamlit secrets or environment variable
+def get_api_key():
+    # Try to get from secrets
+    if 'openai' in st.secrets and 'api_key' in st.secrets['openai']:
+        return st.secrets['openai']['api_key']
+    # Fallback to environment variable
+    return os.environ.get('OPENAI_API_KEY', '')
 
 # Navigation functions
 def go_to_step(step_number):
@@ -87,11 +93,6 @@ if not st.session_state.authenticated:
             else:
                 st.error("Incorrect password")
     st.stop()
-
-# Sidebar for API key (persistent across steps)
-api_key = show_api_key_input()
-if api_key:
-    st.session_state.api_key = api_key
 
 # Main content area - based on current step
 if st.session_state.step == 1:
@@ -235,17 +236,6 @@ elif st.session_state.step == 2:
     
     # Advanced options expander
     with st.expander("Advanced Options"):
-        # Model selection
-        st.markdown("### Model Selection")
-        models = get_available_models()
-        selected_model_index = st.selectbox(
-            "Select AI Model",
-            options=range(len(models)),
-            format_func=lambda i: f"{models[i]['name']} - {models[i]['description']}",
-            index=st.session_state.selected_model_index
-        )
-        st.session_state.selected_model_index = selected_model_index
-        
         # Custom prompt editing
         st.markdown("### Customize Prompts")
         if st.checkbox("Edit evaluation prompts", value=False):
@@ -277,64 +267,122 @@ elif st.session_state.step == 2:
         if st.button("← Previous"):
             go_to_previous_step()
     with col2:
-        if st.button("Next: Evaluate", disabled=not st.session_state.api_key):
-            go_to_next_step()
-    
-    # API key warning
-    if not st.session_state.api_key:
-        st.warning("Please enter your OpenAI API key in the sidebar before proceeding.")
+        if st.button("Next: Evaluate"):
+            # Check if API key is available before proceeding
+            api_key = get_api_key()
+            if not api_key:
+                st.error("OpenAI API key not found. Please contact the administrator.")
+            else:
+                go_to_next_step()
 
 elif st.session_state.step == 3:
     # Step 3: Evaluation Process
     st.markdown("## Step 3: Processing")
     
     if st.session_state.evaluation_result is None:
-        with st.spinner("Evaluating resume... This may take a minute."):
-            try:
-                # Get the selected template
-                templates = get_available_templates()
-                selected_template = templates[st.session_state.selected_template_index]
+        # Get API key
+        api_key = get_api_key()
+        if not api_key:
+            st.error("OpenAI API key not found. Please contact the administrator.")
+            if st.button("← Go Back to Configuration"):
+                go_to_previous_step()
+                st.rerun()
+            st.stop()
+            
+        # Create progress indicators
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        result_area = st.empty()
+        
+        # Show progress updates
+        status_text.text("Extracting resume information...")
+        progress_bar.progress(20)
+        time.sleep(0.5) # Simulate processing time
+        
+        status_text.text("Analyzing candidate profile...")
+        progress_bar.progress(40)
+        time.sleep(0.5)
+        
+        status_text.text("Evaluating technical skills...")
+        progress_bar.progress(60)
+        time.sleep(0.5)
+        
+        status_text.text("Generating comprehensive assessment...")
+        progress_bar.progress(80)
+        time.sleep(0.5)
+        
+        try:
+            # Get the selected template
+            templates = get_available_templates()
+            selected_template = templates[st.session_state.selected_template_index]
+            
+            # Use default model (GPT-4.1)
+            models = get_available_models()
+            selected_model = models[0]  # Always use the first (best) model
+            
+            # Get prompts (including any custom ones)
+            if 'custom_system_prompt' in selected_template:
+                system_prompt = selected_template['custom_system_prompt']
+            else:
+                system_prompt = read_prompt_file(selected_template['system_prompt'])
                 
-                # Get the selected model
-                models = get_available_models()
-                selected_model = models[st.session_state.selected_model_index]
+            if 'custom_user_prompt' in selected_template:
+                user_prompt = selected_template['custom_user_prompt']
+            else:
+                user_prompt = read_prompt_file(selected_template['user_prompt'])
+            
+            # Update status
+            status_text.text("Making API request to OpenAI...")
+            progress_bar.progress(90)
+            
+            # Run the evaluation
+            evaluation_result = evaluate_resume_with_ai(
+                st.session_state.resume_text,
+                system_prompt,
+                user_prompt,
+                selected_model['value'],
+                api_key
+            )
+            
+            # Update progress
+            status_text.text("Evaluation complete!")
+            progress_bar.progress(100)
+            
+            # Store the result
+            st.session_state.evaluation_result = evaluation_result
+            
+            # Show partial result preview
+            with result_area.container():
+                st.success("Evaluation completed successfully!")
+                st.markdown(f"**Overall Score:** {evaluation_result['total_score']}/50")
+                st.markdown(f"**Summary:** {evaluation_result['summary']}")
                 
-                # Get prompts (including any custom ones)
-                if 'custom_system_prompt' in selected_template:
-                    system_prompt = selected_template['custom_system_prompt']
-                else:
-                    system_prompt = read_prompt_file(selected_template['system_prompt'])
-                    
-                if 'custom_user_prompt' in selected_template:
-                    user_prompt = selected_template['custom_user_prompt']
-                else:
-                    user_prompt = read_prompt_file(selected_template['user_prompt'])
-                
-                # Run the evaluation
-                evaluation_result = evaluate_resume_with_ai(
-                    st.session_state.resume_text,
-                    system_prompt,
-                    user_prompt,
-                    selected_model['value'],
-                    st.session_state.api_key
-                )
-                
-                # Store the result
-                st.session_state.evaluation_result = evaluation_result
-                
-                # Automatically advance to results
+                if st.button("View Full Evaluation"):
+                    go_to_next_step()
+                    st.rerun()
+            
+            # Add a button to view full results
+            if st.button("Continue to Results"):
                 go_to_next_step()
                 st.rerun()
                 
-            except Exception as e:
-                st.error(f"Error during evaluation: {e}")
-                # Add retry button
-                if st.button("Retry Evaluation"):
-                    st.rerun()
-                # Add back button
-                if st.button("← Go Back to Configuration"):
-                    go_to_previous_step()
-                    st.rerun()
+        except Exception as e:
+            progress_bar.empty()
+            status_text.empty()
+            st.error(f"Error during evaluation: {e}")
+            
+            # More detailed error information for easier debugging
+            with st.expander("Error Details"):
+                st.code(str(e))
+                
+            # Add retry button
+            if st.button("Retry Evaluation"):
+                st.rerun()
+                
+            # Add back button
+            if st.button("← Go Back to Configuration"):
+                go_to_previous_step()
+                st.rerun()
 
 elif st.session_state.step == 4:
     # Step 4: Results
@@ -421,27 +469,24 @@ with st.sidebar:
     if st.session_state.filename:
         st.markdown(f"**Current File:** {st.session_state.filename}")
     
+    # Add info about using internal OpenAI API
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### ℹ️ About This System")
+    st.sidebar.markdown("""
+    This is an internal candidate evaluation system that leverages AI to provide
+    consistent assessments of technical resumes. It uses our organization's 
+    API key and custom evaluation criteria.
+    """)
+    
     # Help section at the bottom of sidebar
     st.sidebar.markdown("---")
     st.sidebar.markdown("### Need Help?")
     with st.sidebar.expander("How to use this app"):
         st.markdown("""
         1. **Upload Resume**: Upload a PDF or paste text
-        2. **Configure**: Select evaluation template and model
+        2. **Configure**: Select evaluation template
         3. **Process**: Wait for AI evaluation
         4. **Review**: See detailed assessment and download results
-        """)
-    
-    with st.sidebar.expander("About API Keys"):
-        st.markdown("""
-        This app requires an OpenAI API key to function.
-        
-        You can get an API key by:
-        1. Creating an account at [OpenAI](https://platform.openai.com)
-        2. Navigating to API section
-        3. Creating a new API key
-        
-        The key is only used for the current session and not stored permanently.
         """)
 
 if __name__ == "__main__":

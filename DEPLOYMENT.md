@@ -13,7 +13,14 @@ The easiest way to deploy the MVP is using Streamlit Cloud, which offers free ho
 3. Sign in with GitHub
 4. Deploy your app by connecting to your repository
 5. Set the main file path to `app.py`
-6. Add your OpenAI API key as a secret called `OPENAI_API_KEY` 
+6. Add your OpenAI API key as a secret in the Streamlit Cloud dashboard:
+   - Go to your app settings
+   - Click on "Secrets"
+   - Add the following configuration:
+     ```toml
+     [openai]
+     api_key = "your-actual-openai-api-key"
+     ```
 
 Your app will be available at a URL like `https://username-app-name.streamlit.app`.
 
@@ -26,12 +33,19 @@ To run the app locally:
    pip install -r requirements.txt
    ```
 
-2. Run the app:
+2. Set up your API key by creating a `.streamlit/secrets.toml` file:
+   ```bash
+   mkdir -p .streamlit
+   cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+   # Edit the file to add your actual API key
+   ```
+
+3. Run the app:
    ```bash
    streamlit run app.py
    ```
 
-3. Access the app at `http://localhost:8501`
+4. Access the app at `http://localhost:8501`
 
 ### Option 3: Heroku Deployment
 
@@ -53,15 +67,17 @@ To run the app locally:
 
 5. Deploy the app:
    ```bash
-   git push heroku deployment-exploration:main
+   git push heroku initial-fixes:main
    ```
 
 ## Security Considerations
 
 - The app uses a simple password authentication (set to `demo123` by default)
 - Change this password in the `app.py` file for your deployment
-- OpenAI API keys are only stored in the user's session and not saved permanently
-- For production, implement more robust authentication and API key handling
+- OpenAI API keys are now handled securely:
+  - For Streamlit Cloud: stored in Streamlit secrets
+  - For local development: stored in .streamlit/secrets.toml (not committed to Git)
+  - For Heroku: stored in environment variables
 
 ## Customizing the Appearance
 
@@ -75,11 +91,19 @@ To add more evaluation templates:
 1. Create new prompt files in the `configure` directory 
 2. Update the `get_available_templates()` function in `utils/resume_processor.py`
 
+## Recent Improvements
+
+- Fixed JSON format error in OpenAI API calls
+- Improved progress indication during evaluation
+- Removed API key input from UI for better security
+- Simplified the configuration interface
+- Added more detailed error handling
+- Added visual progress indicators
+
 ## Limitations of the MVP
 
-- No persistent storage of evaluations
-- User authentication is basic
-- API keys need to be entered each session
+- No multiple file upload yet (planned for next update)
+- Simple authentication system
 - Custom prompts aren't saved between sessions
 
-These limitations can be addressed in future versions with proper backend storage and user management. 
+These limitations will be addressed in future updates. 

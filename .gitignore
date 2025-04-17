@@ -27,6 +27,7 @@ Thumbs.db
 # API keys and sensitive data
 *.pem
 *.key
+.streamlit/secrets.toml
 
 # Debug files
 debug/

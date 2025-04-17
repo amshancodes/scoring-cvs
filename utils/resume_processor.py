@@ -44,6 +44,14 @@ def evaluate_resume_with_ai(resume_text, system_prompt, user_prompt_template, mo
     # Format the user prompt with the resume text
     user_prompt = user_prompt_template.format(resume_text=resume_text)
     
+    # Add JSON keyword if not present to ensure compatibility with response_format
+    if "json" not in user_prompt.lower():
+        user_prompt += "\n\nPlease format your response as JSON."
+    
+    # Also ensure system prompt mentions JSON
+    if "json" not in system_prompt.lower():
+        system_prompt += " Provide your evaluation in JSON format."
+    
     try:
         response = client.chat.completions.create(
             model=model_name,
@@ -85,7 +93,7 @@ def read_prompt_file(file_path):
 def get_available_models():
     """Get list of available OpenAI models"""
     return [
-        {"name": "GPT-4 Turbo", "value": "gpt-4-turbo", "description": "Powerful and accurate but slower"},
+        {"name": "GPT-4.1-Turbo", "value": "gpt-4-turbo", "description": "Latest model with best performance"},
         {"name": "GPT-4o", "value": "gpt-4o", "description": "Balanced performance and speed"},
         {"name": "GPT-3.5 Turbo", "value": "gpt-3.5-turbo", "description": "Faster but less accurate"}
     ] 
