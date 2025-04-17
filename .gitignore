@@ -1,0 +1,39 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+
+# Environment directories
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# API keys and sensitive data
+*.pem
+*.key
+
+# Debug files
+debug/
+
+# Other repository
+bulk-score-pdf-alpha-v01/
+
+# Keep PDF files but not evaluations (already in the project directory)
+# PDF-RESUMES/
+# evaluations/ 

@@ -95,4 +95,63 @@ Evaluations are generated as Markdown files with detailed scoring, strengths, we
 
 ## License
 
-[MIT License](LICENSE) 
+[MIT License](LICENSE)
+
+## User Guide
+
+Hey there! Welcome to the Resume Evaluation System. Here's how to get started:
+
+### Quick Setup
+
+1. **Environment Setup**:
+   - Make sure you have your OpenAI API key ready
+   - Set up your environment variable: `export OPENAI_API_KEY="your-actual-api-key-here"`
+   - Don't forget to update this in your terminal session or add it to your shell profile
+
+2. **Project Organization**:
+   - We organize everything by projects/folders
+   - Each project (folder) in `PDF-PROJECTS/` contains related resumes and their evaluations
+   - This helps keep your evaluations organized by batches, teams, or positions
+
+3. **Configuration**:
+   - Check the `configure/must_configure/` folder first
+   - Update the prompts to match your company's evaluation criteria
+   - Change the current project name in `config.json` when switching between projects
+
+4. **Running Evaluations**:
+   - For a single resume: `python3 evaluate_adam.py`
+   - For batch processing: `python3 ai_evaluate_resumes_config.py` 
+
+5. **Checking Results**:
+   - Evaluations are saved as Markdown files
+   - Find them in your project folder or in the evaluations directory
+   - They're formatted for easy reading and sharing
+
+Remember, the folder structure is designed to help you manage multiple evaluation projects at once. Just create a new folder under `PDF-PROJECTS/` whenever you start evaluating for a new position or team! 
+
+### Prompt for Cursor
+
+If you're using Cursor AI assistant, here's a comprehensive prompt to help set up the project:
+
+```
+Help me set up this Resume Evaluation System. I need to:
+1. Check that my OpenAI API key is correctly set in my environment
+2. Create a new project folder under PDF-PROJECTS for my new batch of resumes
+3. Update the config.json to point to my new project
+4. Customize the evaluation prompts in the configure/must_configure folder
+5. Run the evaluation script on my resume PDFs
+6. Review the output markdown files
+
+Please show me the exact commands and file edits needed for each step.
+```
+
+## Heads Up
+
+**⚠️ Known Issue:** Currently, you need to manually input your OpenAI API key each time you run the evaluation scripts. This is a temporary limitation we're working on. 
+
+For now, make sure to set your API key before each session:
+```bash
+export OPENAI_API_KEY="your-actual-api-key-here"
+```
+
+We're planning to implement a more persistent solution in a future update that will securely store your API key. Thanks for your patience! 
