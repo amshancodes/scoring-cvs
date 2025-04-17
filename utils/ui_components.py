@@ -77,6 +77,7 @@ def add_custom_css():
             display: inline-flex;
             align-items: center;
             margin: 10px 0;
+            transition: background-color 0.3s;
         }
         .copy-btn:hover {
             background-color: #3a7abd;
@@ -91,6 +92,26 @@ def add_custom_css():
             margin-bottom: 20px;
             font-family: 'Helvetica', sans-serif;
             line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        /* Animation for copy feedback */
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 9999;
+            animation: fadeInOut 2s forwards;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -251,19 +272,61 @@ def download_button(object_to_download, download_filename, button_text):
 
 def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
     """Create a button that copies text to clipboard using JavaScript"""
-    # Escape any quotes in the text to copy
-    escaped_text = text_to_copy.replace('`', '\\`').replace('"', '\\"')
+    # Generate a unique ID for this button
+    button_id = f"copy_button_{hash(text_to_copy)}"[-10:]
     
-    copy_button_html = f"""
-    <button class="copy-btn" onclick="navigator.clipboard.writeText(`{escaped_text}`).then(function() {{ 
-        this.innerHTML = '✓ Copied!'; 
-        setTimeout(() => this.innerHTML = '{button_text}', 2000);
-    }}.bind(this))">
-        {button_text}
-    </button>
+    # Process the text to make it safe for JavaScript
+    # Replace line breaks with explicit newlines for JS
+    js_safe_text = text_to_copy.replace("\n", "\\n").replace("\r", "").replace("'", "\\'").replace('"', '\\"')
+    
+    # Create the JavaScript function to handle copying
+    copy_js = f"""
+    <script>
+    function copyToClipboard{button_id}() {{
+        navigator.clipboard.writeText('{js_safe_text}')
+            .then(() => {{
+                // Show success message
+                const successMsg = document.createElement('div');
+                successMsg.className = 'copy-success';
+                successMsg.textContent = '✓ Copied to clipboard!';
+                document.body.appendChild(successMsg);
+                
+                // Change button text to show success
+                document.getElementById('{button_id}').innerHTML = '✓ Copied!';
+                
+                // Remove success message after animation
+                setTimeout(() => {{
+                    if (successMsg.parentNode) {{
+                        document.body.removeChild(successMsg);
+                    }}
+                }}, 2000);
+                
+                // Reset button text
+                setTimeout(() => {{
+                    document.getElementById('{button_id}').innerHTML = '{button_text}';
+                }}, 2000);
+            }})
+            .catch(err => {{
+                console.error('Failed to copy: ', err);
+                // Show error message briefly
+                document.getElementById('{button_id}').innerHTML = '❌ Failed to copy';
+                setTimeout(() => {{
+                    document.getElementById('{button_id}').innerHTML = '{button_text}';
+                }}, 2000);
+            }});
+    }}
+    </script>
     """
     
-    return st.markdown(copy_button_html, unsafe_allow_html=True)
+    # Create the button HTML
+    button_html = f"""
+    <button id="{button_id}" class="copy-btn" onclick="copyToClipboard{button_id}()">
+        {button_text}
+    </button>
+    {copy_js}
+    """
+    
+    return st.markdown(button_html, unsafe_allow_html=True)
 
 def show_markdown_content(markdown_content, with_copy=True):
     """Display markdown content in a nice format with optional copy button"""
