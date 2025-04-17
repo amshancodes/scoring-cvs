@@ -1,0 +1,11 @@
+# Secrets
+secrets.toml
+
+# Credentials
+credentials.toml
+
+# Service accounts
+serviceAccount*.json
+
+# Cache
+.streamlit/ 
