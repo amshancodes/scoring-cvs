@@ -34,6 +34,17 @@ debug/
 # Other repository
 bulk-score-pdf-alpha-v01/
 
-# Keep PDF files but not evaluations (already in the project directory)
-# PDF-RESUMES/
-# evaluations/ 
+# Sample data - too large for GitHub
+PDF-RESUMES/
+PDF-PROJECTS/
+evaluations/
+backup/
+
+# Generated files
+*.csv
+*_evaluation.json
+*_evaluation.md
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/credentials.toml 
