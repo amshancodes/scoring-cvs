@@ -1,4 +1,4 @@
-# Resume Evaluation System
+# Bulk Profile Scoring Tool - locally hosted version - v0.3
 
 A configurable AI-powered system for evaluating candidate resumes using OpenAI's GPT-4.1 API.
 
