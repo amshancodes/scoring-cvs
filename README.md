@@ -1,6 +1,6 @@
-# Resume Evaluation System - v1.0
+# Candidate Evaluation Tool - v1.0
 
-A powerful AI-powered system for evaluating candidate resumes using OpenAI's GPT models, available both as a command-line tool and a Streamlit web application.
+An internal AI-powered system for evaluating candidate resumes using OpenAI's GPT models, available both as a command-line tool and a Streamlit web application.
 
 ## Features
 
@@ -10,8 +10,11 @@ A powerful AI-powered system for evaluating candidate resumes using OpenAI's GPT
 - **Direct Markdown Output**: Beautiful, detailed evaluation reports
 - **Custom Prompts**: Edit evaluation criteria on-the-fly in the web interface
 - **Bulk Upload Processing**: Evaluate multiple resumes in a single batch
+- **Batch Download**: Download all evaluations as a ZIP file with one click
 - **OpenAI Integration**: Works with GPT-4 and other advanced models
 - **Cloud Deployment**: Hosted on Streamlit Cloud for team access
+- **Visual Evaluation Process**: Clear indicators showing analysis phases
+- **Responsive UI**: Immediate feedback on button clicks with no double-clicking required
 
 ## Directory Structure
 
@@ -94,7 +97,7 @@ scoring-cvs/
 The application is also deployed on Streamlit Cloud for team access. Visit:
 https://your-app-name.streamlit.app/
 
-Authentication is required to access the app.
+Authentication is required to access the app (password: demo123).
 
 ### Streamlit App Features
 
@@ -103,10 +106,12 @@ Authentication is required to access the app.
 - **Template Selection**: Choose from different evaluation templates
 - **Custom Prompts**: Edit system and user prompts directly in the UI
 - **Real-time Feedback**: View evaluation progress and results immediately
-- **Downloadable Results**: Save evaluations as Markdown files
+- **Downloadable Results**: Save evaluations as Markdown files or ZIP
 - **User-Friendly Interface**: Intuitive design with expandable sections
 - **Status Indicators**: Clear feedback on evaluation success/errors
 - **Recommendations**: Automatically highlighted hiring recommendations
+- **Phase Visualization**: Shows each phase of the evaluation process
+- **One-Click Navigation**: Responsive buttons without double-clicking required
 
 ## Configuration
 
@@ -133,7 +138,26 @@ The resume prompt template (`resume_prompt.txt`) defines the evaluation criteria
 
 ## Output
 
-Evaluations are generated as Markdown files with detailed scoring, strengths, weaknesses, and recommendations.
+Evaluations are generated as Markdown files with detailed scoring, strengths, weaknesses, and recommendations. When evaluating multiple resumes, all evaluations can be downloaded as a single ZIP file.
+
+## Using the Batch Download Feature
+
+When evaluating multiple resumes at once:
+
+1. Upload your PDF files in the first step
+2. Complete the evaluation process
+3. Look for the "Batch Download" section above individual results
+4. Click the "📥 Download All Evaluations as ZIP" button
+5. A ZIP file containing all successful evaluations will be downloaded
+
+## Recent Improvements
+
+- **Rebranded as "Candidate Evaluation Tool"** for clearer purpose
+- **Enhanced Navigation** with immediate button response
+- **Added Batch Download** feature for multiple evaluations
+- **Improved Evaluation Process Visualization** with phase indicators
+- **Fixed UI Issues** that required double-clicking navigation buttons
+- **Updated Tool Information** with clearer project context
 
 ## Roadmap and Future Improvements
 
@@ -150,10 +174,6 @@ Evaluations are generated as Markdown files with detailed scoring, strengths, we
 
 [MIT License](LICENSE)
 
-## User Guide
-
-For detailed usage instructions, see [USER_GUIDE.md](USER_GUIDE.md).
-
 ## Troubleshooting
 
 **⚠️ Common Issues:**
@@ -163,4 +183,4 @@ For detailed usage instructions, see [USER_GUIDE.md](USER_GUIDE.md).
 3. **Placeholder Errors**: Custom prompts must include the `{resume_text}` placeholder
 4. **Browser Compatibility**: For best results, use Chrome or Firefox
 
-If you encounter persistent issues, please check the logs or contact support.
+If you encounter persistent issues, please report them to amshan@tryhire.co.
