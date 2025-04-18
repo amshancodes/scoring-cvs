@@ -480,6 +480,7 @@ elif st.session_state.step == 3:
         st.markdown(f"Processing {total_items} resume(s)...")
         progress_bar = st.progress(0)
         status_text = st.empty()
+        phase_indicator = st.empty()  # New element for showing the current phase
         
         for i, item in enumerate(items_to_evaluate):
             filename = item["filename"]
@@ -496,7 +497,13 @@ elif st.session_state.step == 3:
             resume_text = item["text"]
             
             try:
+                # Show evaluation phases
+                phase_indicator.info("📋 Phase 1/3: Preparing resume content for analysis...")
+                time.sleep(0.5)  # Brief pause for UI update
+                
                 # Run the evaluation for this item
+                phase_indicator.warning("🔍 Phase 2/3: Analyzing candidate qualifications and experience...")
+                
                 evaluation_result = evaluate_resume_with_ai(
                     resume_text,
                     system_prompt,
@@ -504,6 +511,9 @@ elif st.session_state.step == 3:
                     selected_model['value'],
                     api_key
                 )
+                
+                phase_indicator.success("✅ Phase 3/3: Generating comprehensive evaluation report...")
+                time.sleep(0.5)  # Brief pause for UI update
                 
                 # Store result (including filename)
                 result_item = {"filename": filename, **evaluation_result}
@@ -527,7 +537,7 @@ elif st.session_state.step == 3:
             # Add delay between calls if not the last item
             if i < total_items - 1:
                  time.sleep(API_CALL_DELAY) 
-            
+        
         # Store results in session state
         if is_single_mode:
             st.session_state.evaluation_result = results_list[0] if results_list else None
@@ -539,6 +549,7 @@ elif st.session_state.step == 3:
         # Clear progress indicators
         progress_bar.empty()
         status_text.empty()
+        phase_indicator.empty()  # Clear the phase indicator
         st.success(f"Evaluation complete for {total_items - len(errors_list)} out of {total_items} resume(s).")
         if errors_list:
             st.warning(f"Errors occurred for: {', '.join(errors_list)}")

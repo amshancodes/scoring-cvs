@@ -149,8 +149,19 @@ def add_custom_css():
 
 def show_header():
     """Display the application header"""
-    st.markdown("# 📄 Resume Evaluation System")
-    st.markdown("Upload a resume or paste text to evaluate candidates using AI")
+    col1, col2 = st.columns([10, 1])
+    with col1:
+        st.markdown("# 📄 Resume Evaluation System")
+        st.markdown("Internal Tool: Upload a resume or paste text to evaluate candidates using AI")
+    with col2:
+        with st.popover("ℹ️", use_container_width=True):
+            st.markdown("### About This Tool")
+            st.markdown("""
+            This is an internal MVP tool created for efficiency in candidate evaluation.
+            - **Purpose**: Streamline resume assessment
+            - **Status**: MVP v1.0.0
+            - **Feedback**: Please report any issues to the dev team
+            """)
     st.markdown("---")
 
 def show_template_card(template, selected=False):
@@ -247,7 +258,7 @@ def show_footer():
     """Display the application footer"""
     st.markdown("""
     <div class="footer">
-        Resume Evaluation System • Powered by OpenAI • v1.0.0
+        Built by Hire AI, for Hire AI. Internal Tool. Version 1.0.0.
     </div>
     """, unsafe_allow_html=True)
 
