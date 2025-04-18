@@ -285,7 +285,7 @@ def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
     hidden_field = f"""
     <textarea 
         id="{textarea_id}" 
-        style="position: absolute; left: -9999px;" 
+        style="position: absolute; left: -9999px; top: 0;" 
         readonly
     >{text_to_copy}</textarea>
     """
@@ -297,36 +297,37 @@ def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
     </div>
     """
     
-    # JavaScript to handle copying and showing/hiding toast
+    # JavaScript to handle copying and showing/hiding toast using navigator.clipboard
     js_code = f"""
     <script>
     document.getElementById("{button_id}").addEventListener("click", function() {{
-        // Get the text field
-        var textarea = document.getElementById("{textarea_id}");
-        
-        // Select the text
-        textarea.select();
-        textarea.setSelectionRange(0, 99999); // For mobile devices
-        
-        // Copy the text
-        document.execCommand("copy");
-        
-        // Update button text
-        this.innerHTML = "✅ Copied!";
-        
-        // Show toast
+        var textToCopy = document.getElementById("{textarea_id}").value;
+        var buttonElement = this;
         var toast = document.getElementById("{toast_id}");
-        toast.classList.add("show-toast");
         
-        // Hide toast after 3 seconds
-        setTimeout(function() {{
-            toast.classList.remove("show-toast");
-        }}, 3000);
-        
-        // Reset button text after 3 seconds
-        setTimeout(() => {{
-            document.getElementById("{button_id}").innerHTML = "{button_text}";
-        }}, 3000);
+        // Use navigator.clipboard.writeText API
+        navigator.clipboard.writeText(textToCopy).then(function() {{
+            // Success: Update button text and show toast
+            buttonElement.innerHTML = "✅ Copied!";
+            toast.classList.add("show-toast");
+            
+            // Hide toast after 3 seconds
+            setTimeout(function() {{
+                toast.classList.remove("show-toast");
+            }}, 3000);
+            
+            // Reset button text after 3 seconds
+            setTimeout(function() {{
+                buttonElement.innerHTML = "{button_text}"; // Use original button text
+            }}, 3000);
+            
+        }}, function(err) {{
+            // Error: Log to console and maybe show an error message
+            console.error('Async: Could not copy text: ', err);
+            buttonElement.innerHTML = "❌ Copy Failed";
+            // Optional: Show error toast
+            // setTimeout(() => {{ buttonElement.innerHTML = "{button_text}"; }}, 3000);
+        }});
     }});
     </script>
     """

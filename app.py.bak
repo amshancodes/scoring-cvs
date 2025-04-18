@@ -460,8 +460,7 @@ elif st.session_state.step == 3:
                 with st.expander("Debug Information"):
                     st.markdown("### Raw API Response")
                     if st.session_state.raw_api_response:
-                        # Change language to "text" to prevent re-rendering markdown
-                        st.code(st.session_state.raw_api_response, language="text")
+                        st.code(st.session_state.raw_api_response, language="markdown")
                     else:
                         st.code(json.dumps(evaluation_result, indent=2), language="json")
                 
@@ -522,8 +521,7 @@ elif st.session_state.step == 3:
             with st.expander("Debug Information"):
                 st.markdown("### Raw API Response")
                 if st.session_state.raw_api_response:
-                    # Change language to "text" to prevent re-rendering markdown
-                    st.code(st.session_state.raw_api_response, language="text")
+                    st.code(st.session_state.raw_api_response, language="markdown")
                 else:
                     st.code(json.dumps(st.session_state.evaluation_result, indent=2), language="json")
             
