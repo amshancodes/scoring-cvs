@@ -374,7 +374,7 @@ elif st.session_state.step == 2:
             system_prompt_edited = st.text_area("System Prompt", system_prompt, height=200)
             
             st.markdown("#### User Prompt")
-            st.info("Make sure to keep the <span style='color:red; font-weight:bold;'>{resume_text}</span> placeholder in your prompt - this is where the actual resume content will be inserted.", unsafe_allow_html=True)
+            st.markdown('<div style="padding: 1em; border-radius: 0.5em; background-color: #cfe2ff; color: #084298;"><p>Make sure to keep the <span style="color:red; font-weight:bold;">{resume_text}</span> placeholder in your prompt - this is where the actual resume content will be inserted.</p></div>', unsafe_allow_html=True)
             user_prompt_edited = st.text_area("User Prompt Template", user_prompt, height=300)
             
             # Save edited prompts (in-memory for MVP)
