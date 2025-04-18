@@ -59,6 +59,11 @@ if 'selected_model_index' not in st.session_state:
     st.session_state.selected_model_index = 0
 if 'show_password' not in st.session_state:
     st.session_state.show_password = False
+# Add new session state variables for custom prompts
+if 'custom_system_prompt' not in st.session_state:
+    st.session_state.custom_system_prompt = None
+if 'custom_user_prompt' not in st.session_state:
+    st.session_state.custom_user_prompt = None
 
 # Get API key from Streamlit secrets or environment variable
 def get_api_key():
@@ -87,6 +92,9 @@ def reset_app():
     st.session_state.markdown_result = ""
     st.session_state.raw_api_response = ""
     st.session_state.filename = ""
+    # Also reset custom prompts
+    st.session_state.custom_system_prompt = None
+    st.session_state.custom_user_prompt = None
 
 # Create markdown content from API response - modified to use the markdown directly
 def create_markdown_from_api(response, filename):
@@ -364,8 +372,10 @@ elif st.session_state.step == 2:
             # Save edited prompts (in-memory for MVP)
             if system_prompt_edited != system_prompt or user_prompt_edited != user_prompt:
                 if st.button("Save Custom Prompts"):
-                    # In a full implementation, we'd save these to files or database
-                    # For the MVP, we'll just update the template object in memory
+                    # Store in session state to persist between steps
+                    st.session_state.custom_system_prompt = system_prompt_edited
+                    st.session_state.custom_user_prompt = user_prompt_edited
+                    # Also update the template object in memory for the current session
                     templates[st.session_state.selected_template_index]['custom_system_prompt'] = system_prompt_edited
                     templates[st.session_state.selected_template_index]['custom_user_prompt'] = user_prompt_edited
                     st.success("Custom prompts saved")
@@ -415,14 +425,26 @@ elif st.session_state.step == 3:
         selected_model = models[0] # Always use the first (best) model
         
         # Get prompts (including any custom ones)
-        if 'custom_system_prompt' in selected_template:
+        if st.session_state.custom_system_prompt is not None:
+            # Use custom system prompt from session state (highest priority)
+            system_prompt = st.session_state.custom_system_prompt
+            st.info("Using custom system prompt")
+        elif 'custom_system_prompt' in selected_template:
+            # Use custom system prompt from template
             system_prompt = selected_template['custom_system_prompt']
         else:
+            # Use default system prompt from file
             system_prompt = read_prompt_file(selected_template['system_prompt'])
             
-        if 'custom_user_prompt' in selected_template:
+        if st.session_state.custom_user_prompt is not None:
+            # Use custom user prompt from session state (highest priority)
+            user_prompt_template = st.session_state.custom_user_prompt
+            st.info("Using custom user prompt")
+        elif 'custom_user_prompt' in selected_template:
+            # Use custom user prompt from template
             user_prompt_template = selected_template['custom_user_prompt']
         else:
+            # Use default user prompt from file
             user_prompt_template = read_prompt_file(selected_template['user_prompt'])
         
         # Prepare list of items to evaluate
