@@ -4,8 +4,6 @@ UI components for the Streamlit app
 
 import streamlit as st
 import base64
-import hashlib
-import re
 from pathlib import Path
 
 def set_page_config():
@@ -68,53 +66,6 @@ def add_custom_css():
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .copy-btn {
-            background-color: #4A90E2;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            margin: 10px 0;
-            transition: background-color 0.3s;
-            width: 100%;
-            max-width: 300px;
-        }
-        .copy-btn:hover {
-            background-color: #3a7abd;
-        }
-        .copy-btn svg {
-            margin-right: 8px;
-        }
-        .evaluation-md {
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-family: 'Helvetica', sans-serif;
-            line-height: 1.6;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        .toast-message {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background-color: #4CAF50;
-            color: white;
-            padding: 16px;
-            border-radius: 5px;
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.5s;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .show-toast {
-            opacity: 1;
-        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -161,23 +112,6 @@ def show_evaluation_summary(evaluation):
     </div>
     """, unsafe_allow_html=True)
     
-    # Check if total_score exists, otherwise try to calculate it
-    if 'total_score' not in evaluation:
-        try:
-            # Try to calculate total score from individual scores
-            total = 0
-            for category in ['overall_impression', 'technical_skills', 'experience', 'education', 'projects']:
-                if category in evaluation and 'score' in evaluation[category]:
-                    total += evaluation[category]['score']
-            evaluation['total_score'] = total
-        except:
-            # If calculation fails, set a placeholder
-            evaluation['total_score'] = "-"
-    
-    # Same for summary
-    if 'summary' not in evaluation:
-        evaluation['summary'] = "No summary provided in the evaluation."
-    
     # Total score
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -195,24 +129,36 @@ def show_evaluation_summary(evaluation):
     
     st.markdown("---")
     
-    # Individual scores - with error handling for each section
-    categories = [
-        ('overall_impression', 'Overall Impression'),
-        ('technical_skills', 'Technical Skills'),
-        ('experience', 'Experience'),
-        ('education', 'Education'),
-        ('projects', 'Projects')
-    ]
+    # Individual scores
+    show_score_section(
+        evaluation['overall_impression']['score'], 10, 
+        "Overall Impression", 
+        evaluation['overall_impression']['explanation']
+    )
     
-    for category_key, category_label in categories:
-        if category_key in evaluation and isinstance(evaluation[category_key], dict):
-            category = evaluation[category_key]
-            score = category.get('score', '-')
-            explanation = category.get('explanation', 'No details provided.')
-            show_score_section(score, 10, category_label, explanation)
-        else:
-            # Show placeholder if category is missing
-            show_score_section('-', 10, category_label, 'Information not available.')
+    show_score_section(
+        evaluation['technical_skills']['score'], 10, 
+        "Technical Skills", 
+        evaluation['technical_skills']['explanation']
+    )
+    
+    show_score_section(
+        evaluation['experience']['score'], 10, 
+        "Experience", 
+        evaluation['experience']['explanation']
+    )
+    
+    show_score_section(
+        evaluation['education']['score'], 10, 
+        "Education", 
+        evaluation['education']['explanation']
+    )
+    
+    show_score_section(
+        evaluation['projects']['score'], 10, 
+        "Projects", 
+        evaluation['projects']['explanation']
+    )
 
 def show_footer():
     """Display the application footer"""
@@ -270,84 +216,4 @@ def download_button(object_to_download, download_filename, button_text):
     """
     
     dl_link = custom_css + f'<a href="data:file/txt;base64,{b64}" id="{button_uuid}" download="{download_filename}">{button_text}</a>'
-    return st.markdown(dl_link, unsafe_allow_html=True)
-
-def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
-    """Create a button that copies text to clipboard using JavaScript"""
-    # Create a unique ID based on hashing a portion of the content
-    text_hash = hashlib.md5(text_to_copy[:100].encode()).hexdigest()[:10]
-    button_id = f"copy_btn_{text_hash}"
-    toast_id = f"toast_{text_hash}"
-    textarea_id = f"text_area_{text_hash}"
-    
-    # Create a hidden textarea with the content
-    # This approach is more reliable than trying to pass the content directly to JS
-    hidden_field = f"""
-    <textarea 
-        id="{textarea_id}" 
-        style="position: absolute; left: -9999px;" 
-        readonly
-    >{text_to_copy}</textarea>
-    """
-    
-    # Toast notification
-    toast_html = f"""
-    <div id="{toast_id}" class="toast-message">
-        ✅ Copied to clipboard!
-    </div>
-    """
-    
-    # JavaScript to handle copying and showing/hiding toast
-    js_code = f"""
-    <script>
-    document.getElementById("{button_id}").addEventListener("click", function() {{
-        // Get the text field
-        var textarea = document.getElementById("{textarea_id}");
-        
-        // Select the text
-        textarea.select();
-        textarea.setSelectionRange(0, 99999); // For mobile devices
-        
-        // Copy the text
-        document.execCommand("copy");
-        
-        // Update button text
-        this.innerHTML = "✅ Copied!";
-        
-        // Show toast
-        var toast = document.getElementById("{toast_id}");
-        toast.classList.add("show-toast");
-        
-        // Hide toast after 3 seconds
-        setTimeout(function() {{
-            toast.classList.remove("show-toast");
-        }}, 3000);
-        
-        // Reset button text after 3 seconds
-        setTimeout(() => {{
-            document.getElementById("{button_id}").innerHTML = "{button_text}";
-        }}, 3000);
-    }});
-    </script>
-    """
-    
-    # Button HTML
-    button_html = f"""
-    <button id="{button_id}" class="copy-btn">{button_text}</button>
-    {hidden_field}
-    {toast_html}
-    {js_code}
-    """
-    
-    return st.markdown(button_html, unsafe_allow_html=True)
-
-def show_markdown_content(markdown_content, with_copy=True):
-    """Display markdown content in a nice format with optional copy button"""
-    # Display the markdown content in a styled container
-    st.markdown("<div class='evaluation-md'>", unsafe_allow_html=True)
-    st.markdown(markdown_content)
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Add copy button if requested
-    if with_copy:
-        copy_button(markdown_content) 
+    return st.markdown(dl_link, unsafe_allow_html=True) 
