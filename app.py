@@ -9,6 +9,8 @@ import streamlit as st
 from pathlib import Path
 import re
 import io # Import io for BytesIO
+import zipfile
+from datetime import datetime
 
 # Import utility modules
 from utils.resume_processor import (
@@ -554,6 +556,50 @@ elif st.session_state.step == 3:
     if not results_to_display:
         st.info("No evaluation results to display.")
     else:
+        # Add Download All button for multiple evaluations
+        if len(results_to_display) > 1:
+            st.markdown("### Batch Download")
+            
+            # Filter out only successful evaluations
+            successful_evals = [result for result in results_to_display if "markdown_content" in result]
+            
+            # Only show download button if there are successful evaluations
+            if successful_evals:
+                # Create a zipfile with all evaluations
+                with st.spinner("Preparing ZIP file with all evaluations..."):
+                    # Create a buffer for the zip file
+                    zip_buffer = io.BytesIO()
+                    
+                    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                        for result in successful_evals:
+                            if "markdown_content" in result:
+                                filename = f"{result['filename'].split('.')[0]}_evaluation.md"
+                                # Add markdown content to the zip file
+                                zip_file.writestr(filename, result["markdown_content"])
+                    
+                    # Create timestamp for the zip filename
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    
+                    # Reset buffer position
+                    zip_buffer.seek(0)
+                
+                # Display info and download button
+                st.success(f"**{len(successful_evals)}** evaluation(s) ready for download.")
+                
+                # Use columns for better layout
+                col1, col2, col3 = st.columns([2, 3, 2])
+                with col2:
+                    st.download_button(
+                        label="📥 Download All Evaluations as ZIP",
+                        data=zip_buffer,
+                        file_name=f"evaluations_{timestamp}.zip",
+                        mime="application/zip",
+                        key="download_all_button",
+                        use_container_width=True,
+                    )
+            
+            st.markdown("---")
+        
         # Display results using expanders
         for result in results_to_display:
             filename = result.get("filename", "Unknown File")
