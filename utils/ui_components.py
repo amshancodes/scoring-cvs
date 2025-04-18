@@ -151,23 +151,17 @@ def show_header():
     """Display the application header"""
     col1, col2 = st.columns([10, 1])
     with col1:
-        # Use a row with logo and title
-        logo_col, title_col = st.columns([1, 9])
-        with logo_col:
-            # Check if logo exists in assets folder, otherwise use placeholder
-            logo_path = Path("assets/hire_logo.png")
-            if logo_path.exists():
-                st.image(str(logo_path), width=50)
-            else:
-                st.markdown("🏢")
-        with title_col:
-            st.markdown("# Candidate Evaluation Tool")
+        st.markdown("# 📄 Candidate Evaluation Tool")
         st.markdown("Internal Tool: Upload a resume or paste text to evaluate candidates using AI")
     with col2:
         with st.popover("ℹ️", use_container_width=True):
             st.markdown("### About This Tool")
             st.markdown("""
-            **Nevis Project / Philip AI Applied Researcher**. This is an internal tool created for 10x+ efficiency with candidate evaluation requested by Vlad. Currently tuned okay.
+            This is an internal tool created for efficiency.
+            
+            Requested by Vlad.
+            
+            Default criteria is based on the AI Applied Researcher role for Nevis.
             
             **Feedback**: Please report any issues to the dev team. Please report any issues to amshan@tryhire.co
             """)
