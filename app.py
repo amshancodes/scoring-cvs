@@ -361,7 +361,8 @@ elif st.session_state.step == 2:
     with st.expander("Advanced Options"):
         # Custom prompt editing
         st.markdown("### Customize Prompts")
-        if st.checkbox("Edit evaluation prompts", value=False):
+        edit_prompts_checkbox = st.checkbox("Edit evaluation prompts", value=False)
+        if edit_prompts_checkbox:
             selected_template = templates[st.session_state.selected_template_index]
             
             # Read current prompts
@@ -373,12 +374,13 @@ elif st.session_state.step == 2:
             system_prompt_edited = st.text_area("System Prompt", system_prompt, height=200)
             
             st.markdown("#### User Prompt")
-            st.info("Make sure to keep the {resume_text} placeholder in your prompt - this is where the actual resume content will be inserted.")
+            st.info("Make sure to keep the <span style='color:red; font-weight:bold;'>{resume_text}</span> placeholder in your prompt - this is where the actual resume content will be inserted.", unsafe_allow_html=True)
             user_prompt_edited = st.text_area("User Prompt Template", user_prompt, height=300)
             
             # Save edited prompts (in-memory for MVP)
             if system_prompt_edited != system_prompt or user_prompt_edited != user_prompt:
-                if st.button("Save Custom Prompts"):
+                st.markdown("<div style='color:red;'>Your custom prompts will be automatically saved when you click 'Start Evaluation'</div>", unsafe_allow_html=True)
+                if st.button("Save Custom Prompts", type="primary"):
                     # Make sure the user prompt contains the resume_text placeholder
                     if "{resume_text}" not in user_prompt_edited:
                         st.error("The user prompt must contain the {resume_text} placeholder where the resume content will be inserted.")
@@ -406,6 +408,22 @@ elif st.session_state.step == 2:
             if not api_key:
                 st.error("OpenAI API key not found. Please contact the administrator.")
             else:
+                # If "Edit evaluation prompts" checkbox is on, automatically save the custom prompts
+                if edit_prompts_checkbox:
+                    # Check if user prompt contains the resume_text placeholder
+                    if "{resume_text}" not in user_prompt_edited:
+                        st.error("The user prompt must contain the {resume_text} placeholder where the resume content will be inserted.")
+                        st.stop()
+                    else:
+                        # Store in session state to persist between steps
+                        st.session_state.custom_system_prompt = system_prompt_edited
+                        st.session_state.custom_user_prompt = user_prompt_edited
+                        # Also update the template object in memory for the current session
+                        templates[st.session_state.selected_template_index]['custom_system_prompt'] = system_prompt_edited
+                        templates[st.session_state.selected_template_index]['custom_user_prompt'] = user_prompt_edited
+                        st.success("Custom prompts automatically saved")
+                        time.sleep(1)  # Brief pause to show the success message
+                        
                 # Show a spinner to indicate processing
                 with st.spinner("Transitioning to evaluation..."):
                     go_to_next_step()
