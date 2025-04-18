@@ -93,6 +93,35 @@ The resume prompt template (`resume_prompt.txt`) defines the evaluation criteria
 
 Evaluations are generated as Markdown files with detailed scoring, strengths, weaknesses, and recommendations.
 
+## Streamlit Application
+
+This repository also includes a Streamlit web application for a more interactive resume evaluation experience.
+
+### Running the App
+
+1.  **Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+2.  **Set API Key:** Ensure your OpenAI API key is available as an environment variable:
+    ```bash
+    export OPENAI_API_KEY="your-api-key-here"
+    ```
+3.  **Run Streamlit:**
+    ```bash
+    # If streamlit isn't in your PATH, you might need to specify the full path
+    # e.g., export PATH=$PATH:$HOME/Library/Python/3.9/bin 
+    streamlit run app.py
+    ```
+
+### App Features
+
+-   **Upload Options:** Upload single or multiple resume PDFs, paste resume text directly, or load a sample resume.
+-   **Configuration:** Uses the same `system_prompt.txt` and `resume_prompt.txt` from the `configure/must_configure/` directory for evaluation criteria.
+-   **Interactive Evaluation:** Processes resumes and displays the results directly in the browser.
+-   **Bulk Processing:** Handles multiple PDF uploads sequentially, displaying results in an expandable list.
+-   **Download Results:** Download the generated evaluation for each resume as a Markdown file.
+
 ## License
 
 [MIT License](LICENSE)
