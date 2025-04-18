@@ -1,13 +1,17 @@
-# Bulk Profile Scoring Tool - locally hosted version - v0.3
+# Resume Evaluation System - v1.0
 
-A configurable AI-powered system for evaluating candidate resumes using OpenAI's GPT-4.1 API.
+A powerful AI-powered system for evaluating candidate resumes using OpenAI's GPT models, available both as a command-line tool and a Streamlit web application.
 
 ## Features
 
+- **Dual Interface**: Run as CLI tool or interactive Streamlit web app
 - **Project-Based Organization**: Organize evaluations by projects/batches
 - **Configurable Templates**: Customize evaluation criteria and prompts
 - **Direct Markdown Output**: Beautiful, detailed evaluation reports
-- **OpenAI Integration**: Works with GPT-4.1 and other advanced models
+- **Custom Prompts**: Edit evaluation criteria on-the-fly in the web interface
+- **Bulk Upload Processing**: Evaluate multiple resumes in a single batch
+- **OpenAI Integration**: Works with GPT-4 and other advanced models
+- **Cloud Deployment**: Hosted on Streamlit Cloud for team access
 
 ## Directory Structure
 
@@ -26,11 +30,17 @@ scoring-cvs/
 │       ├── Profile (42).pdf      # Resume PDF
 │       └── Profile_(42)_evaluation.md  # Generated evaluation
 ├── PDF-RESUMES/                  # Legacy directory for PDFs
-├── ai_evaluate_resumes_config.py # Main evaluation script
-└── evaluate_adam.py              # Single resume evaluation
+├── utils/                        # Utility functions
+│   ├── resume_processor.py       # PDF processing and evaluation
+│   └── ui_components.py          # Streamlit UI components
+├── app.py                        # Streamlit web application
+├── ai_evaluate_resumes_config.py # CLI batch evaluation script
+└── evaluate_adam.py              # CLI single resume evaluation
 ```
 
-## Setup and Usage
+## Command-Line Usage
+
+### Setup
 
 1. **Configure your environment**:
    ```bash
@@ -41,45 +51,77 @@ scoring-cvs/
    - Edit `configure/must_configure/config.json` to set parameters
    - Customize prompts in `system_prompt.txt` and `resume_prompt.txt`
 
-3. **Create a project folder**:
+3. **Create a project folder and add PDFs**:
    ```bash
    mkdir -p PDF-PROJECTS/my-new-batch
-   ```
-
-4. **Place PDFs in the project folder**:
-   ```bash
    cp my-resumes/*.pdf PDF-PROJECTS/my-new-batch/
    ```
 
-5. **Update the current project in config**:
-   ```json
-   {
-     "current_project": "my-new-batch",
-     "output_in_project_folder": true
-   }
-   ```
-
-6. **Run the evaluation script**:
+4. **Run the evaluation script**:
    ```bash
+   # For batch processing
    python3 ai_evaluate_resumes_config.py
+   
+   # For single resume
+   python3 evaluate_adam.py
    ```
 
-7. **Review the evaluations** in the project folder
+## Streamlit Web Application
 
-## Configuration Options
+### Running Locally
 
-### Main Configuration (config.json)
+1. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```json
-{
-  "pdf_path": "PDF-RESUMES/example.pdf",  
-  "output_path": "{name}_evaluation.md",  
-  "model": "gpt-4.1-2025-04-14",
-  "projects_folder": "PDF-PROJECTS",
-  "current_project": "new-batch",
-  "output_in_project_folder": true
-}
-```
+2. **Set API Key:**
+   ```bash
+   export OPENAI_API_KEY="your-api-key-here"
+   ```
+
+3. **Run Streamlit:**
+   ```bash
+   # If streamlit isn't in your PATH, add it
+   export PATH=$PATH:$HOME/Library/Python/3.9/bin
+   
+   # Start the app
+   streamlit run app.py
+   ```
+
+### Cloud Deployment
+
+The application is also deployed on Streamlit Cloud for team access. Visit:
+https://your-app-name.streamlit.app/
+
+Authentication is required to access the app.
+
+### Streamlit App Features
+
+- **Multiple Input Methods**: Upload PDFs, paste text, or use sample resumes
+- **Bulk Processing**: Upload and evaluate multiple PDFs in one session
+- **Template Selection**: Choose from different evaluation templates
+- **Custom Prompts**: Edit system and user prompts directly in the UI
+- **Real-time Feedback**: View evaluation progress and results immediately
+- **Downloadable Results**: Save evaluations as Markdown files
+- **User-Friendly Interface**: Intuitive design with expandable sections
+- **Status Indicators**: Clear feedback on evaluation success/errors
+- **Recommendations**: Automatically highlighted hiring recommendations
+
+## Configuration
+
+### Custom Prompts in Web Interface
+
+The Streamlit app allows editing evaluation prompts on-the-fly:
+
+1. Go to the "Configure Evaluation" step
+2. Click on "Advanced Options"
+3. Check "Edit evaluation prompts"
+4. Modify the system and user prompts as needed
+5. **IMPORTANT**: Keep the `{resume_text}` placeholder in the user prompt
+6. Click "Save Custom Prompts"
+
+The custom prompts will be used for the current evaluation session.
 
 ### System Prompt
 
@@ -93,34 +135,16 @@ The resume prompt template (`resume_prompt.txt`) defines the evaluation criteria
 
 Evaluations are generated as Markdown files with detailed scoring, strengths, weaknesses, and recommendations.
 
-## Streamlit Application
+## Roadmap and Future Improvements
 
-This repository also includes a Streamlit web application for a more interactive resume evaluation experience.
-
-### Running the App
-
-1.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  **Set API Key:** Ensure your OpenAI API key is available as an environment variable:
-    ```bash
-    export OPENAI_API_KEY="your-api-key-here"
-    ```
-3.  **Run Streamlit:**
-    ```bash
-    # If streamlit isn't in your PATH, you might need to specify the full path
-    # e.g., export PATH=$PATH:$HOME/Library/Python/3.9/bin 
-    streamlit run app.py
-    ```
-
-### App Features
-
--   **Upload Options:** Upload single or multiple resume PDFs, paste resume text directly, or load a sample resume.
--   **Configuration:** Uses the same `system_prompt.txt` and `resume_prompt.txt` from the `configure/must_configure/` directory for evaluation criteria.
--   **Interactive Evaluation:** Processes resumes and displays the results directly in the browser.
--   **Bulk Processing:** Handles multiple PDF uploads sequentially, displaying results in an expandable list.
--   **Download Results:** Download the generated evaluation for each resume as a Markdown file.
+- [ ] Secure API key storage to avoid manual entry
+- [ ] Export evaluations in multiple formats (PDF, DOCX)
+- [ ] Integration with applicant tracking systems (ATS)
+- [ ] More granular evaluation templates for different roles
+- [ ] Batch comparison view to rank multiple candidates
+- [ ] Enhanced data visualization of evaluation metrics
+- [ ] Mobile-friendly responsive design
+- [ ] Authentication improvements and user management
 
 ## License
 
@@ -128,59 +152,15 @@ This repository also includes a Streamlit web application for a more interactive
 
 ## User Guide
 
-Hey there! Welcome to the Resume Evaluation System. Here's how to get started:
+For detailed usage instructions, see [USER_GUIDE.md](USER_GUIDE.md).
 
-### Quick Setup
+## Troubleshooting
 
-1. **Environment Setup**:
-   - Make sure you have your OpenAI API key ready
-   - Set up your environment variable: `export OPENAI_API_KEY="your-actual-api-key-here"`
-   - Don't forget to update this in your terminal session or add it to your shell profile
+**⚠️ Common Issues:**
 
-2. **Project Organization**:
-   - We organize everything by projects/folders
-   - Each project (folder) in `PDF-PROJECTS/` contains related resumes and their evaluations
-   - This helps keep your evaluations organized by batches, teams, or positions
+1. **API Key Issues**: Ensure your OpenAI API key is set as an environment variable
+2. **PDF Extraction Issues**: Some PDF formats may not extract correctly
+3. **Placeholder Errors**: Custom prompts must include the `{resume_text}` placeholder
+4. **Browser Compatibility**: For best results, use Chrome or Firefox
 
-3. **Configuration**:
-   - Check the `configure/must_configure/` folder first
-   - Update the prompts to match your company's evaluation criteria
-   - Change the current project name in `config.json` when switching between projects
-
-4. **Running Evaluations**:
-   - For a single resume: `python3 evaluate_adam.py`
-   - For batch processing: `python3 ai_evaluate_resumes_config.py` 
-
-5. **Checking Results**:
-   - Evaluations are saved as Markdown files
-   - Find them in your project folder or in the evaluations directory
-   - They're formatted for easy reading and sharing
-
-Remember, the folder structure is designed to help you manage multiple evaluation projects at once. Just create a new folder under `PDF-PROJECTS/` whenever you start evaluating for a new position or team! 
-
-### Prompt for Cursor
-
-If you're using Cursor AI assistant, here's a comprehensive prompt to help set up the project:
-
-```
-Help me set up this Resume Evaluation System. I need to:
-1. Check that my OpenAI API key is correctly set in my environment
-2. Create a new project folder under PDF-PROJECTS for my new batch of resumes
-3. Update the config.json to point to my new project
-4. Customize the evaluation prompts in the configure/must_configure folder
-5. Run the evaluation script on my resume PDFs
-6. Review the output markdown files
-
-Please show me the exact commands and file edits needed for each step.
-```
-
-## Heads Up
-
-**⚠️ Known Issue:** Currently, you need to manually input your OpenAI API key each time you run the evaluation scripts. This is a temporary limitation we're working on. 
-
-For now, make sure to set your API key before each session:
-```bash
-export OPENAI_API_KEY="your-actual-api-key-here"
-```
-
-We're planning to implement a more persistent solution in a future update that will securely store your API key. Thanks for your patience! 
+If you encounter persistent issues, please check the logs or contact support.
