@@ -216,7 +216,8 @@ if st.session_state.step == 1:
 
             # Optional: Preview filenames
             with st.expander("Uploaded Files"):
-                 st.write([f["filename"] for f in st.session_state.uploaded_resumes])
+                for file_info in st.session_state.uploaded_resumes:
+                    st.text(file_info["filename"])
                     
     with tab2:
         pasted_text = st.text_area("Paste resume text here", height=300)
