@@ -173,10 +173,11 @@ if not st.session_state.authenticated:
     with auth_col1:
         entered_password = st.text_input("Enter password to access the application", type="password")
     with auth_col2:
-        if st.button("Login"):
+        if st.button("Login", key="login_button"):
             if entered_password == password:
                 st.session_state.authenticated = True
-                st.rerun()
+                with st.spinner("Logging in..."):
+                    st.rerun()
             else:
                 st.error("Incorrect password")
     st.stop()
@@ -332,8 +333,11 @@ if st.session_state.step == 1:
     # Navigation
     col1, col2, col3 = st.columns([2, 2, 6])
     with col2:
-        if st.button("Next: Configure Evaluation", disabled=not ready_to_proceed):
+        # Instead of checking condition within button, check it after button is clicked
+        if st.button("Next: Configure Evaluation", disabled=not ready_to_proceed, key="next_button_step1"):
             go_to_next_step()
+            # Force the app to rerun to show the new state
+            st.rerun()
 
 elif st.session_state.step == 2:
     # Step 2: Configure Evaluation
@@ -390,16 +394,22 @@ elif st.session_state.step == 2:
     # Navigation
     col1, col2, col3, col4 = st.columns([2, 2, 2, 4])
     with col1:
-        if st.button("← Previous"):
+        if st.button("← Previous", key="prev_button_step2"):
             go_to_previous_step()
+            st.rerun()
     with col2:
-        if st.button("Start Evaluation"):
-            # Check if API key is available before proceeding
-            api_key = get_api_key()
+        # Check if API key is available
+        api_key = get_api_key()
+        button_disabled = not api_key
+        
+        if st.button("Start Evaluation", disabled=button_disabled, key="eval_button_step2"):
             if not api_key:
                 st.error("OpenAI API key not found. Please contact the administrator.")
             else:
-                go_to_next_step()
+                # Show a spinner to indicate processing
+                with st.spinner("Transitioning to evaluation..."):
+                    go_to_next_step()
+                    st.rerun()
 
 elif st.session_state.step == 3:
     # Step 3: Evaluation Process (Modified for Bulk)
@@ -409,8 +419,9 @@ elif st.session_state.step == 3:
     api_key = get_api_key()
     if not api_key:
         st.error("OpenAI API key not found. Please contact the administrator.")
-        if st.button("← Go Back"):
+        if st.button("← Go Back", key="back_no_api"):
             go_to_previous_step()
+            st.rerun()
         st.stop()
     
     # Determine if processing single text or multiple files
@@ -652,12 +663,13 @@ elif st.session_state.step == 3:
     st.markdown("### Actions")
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("← Back to Configuration"):
+        if st.button("← Back to Configuration", key="back_config_step3"):
             go_to_step(2)
+            st.rerun()
     with col2:
-        if st.button("Evaluate Another Resume/Batch"):
+        if st.button("Evaluate Another Resume/Batch", key="restart_step3"):
             reset_app()
-            st.rerun() # Rerun to clear display immediately
+            st.rerun() # Already has rerun but keeping for clarity
 
 # Footer
 show_footer()
