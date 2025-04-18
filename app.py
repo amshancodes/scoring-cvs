@@ -367,18 +367,23 @@ elif st.session_state.step == 2:
             system_prompt_edited = st.text_area("System Prompt", system_prompt, height=200)
             
             st.markdown("#### User Prompt")
+            st.info("Make sure to keep the {resume_text} placeholder in your prompt - this is where the actual resume content will be inserted.")
             user_prompt_edited = st.text_area("User Prompt Template", user_prompt, height=300)
             
             # Save edited prompts (in-memory for MVP)
             if system_prompt_edited != system_prompt or user_prompt_edited != user_prompt:
                 if st.button("Save Custom Prompts"):
-                    # Store in session state to persist between steps
-                    st.session_state.custom_system_prompt = system_prompt_edited
-                    st.session_state.custom_user_prompt = user_prompt_edited
-                    # Also update the template object in memory for the current session
-                    templates[st.session_state.selected_template_index]['custom_system_prompt'] = system_prompt_edited
-                    templates[st.session_state.selected_template_index]['custom_user_prompt'] = user_prompt_edited
-                    st.success("Custom prompts saved")
+                    # Make sure the user prompt contains the resume_text placeholder
+                    if "{resume_text}" not in user_prompt_edited:
+                        st.error("The user prompt must contain the {resume_text} placeholder where the resume content will be inserted.")
+                    else:
+                        # Store in session state to persist between steps
+                        st.session_state.custom_system_prompt = system_prompt_edited
+                        st.session_state.custom_user_prompt = user_prompt_edited
+                        # Also update the template object in memory for the current session
+                        templates[st.session_state.selected_template_index]['custom_system_prompt'] = system_prompt_edited
+                        templates[st.session_state.selected_template_index]['custom_user_prompt'] = user_prompt_edited
+                        st.success("Custom prompts saved")
     
     # Navigation
     col1, col2, col3, col4 = st.columns([2, 2, 2, 4])
