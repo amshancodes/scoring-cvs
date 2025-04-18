@@ -123,8 +123,9 @@ The Streamlit app allows editing evaluation prompts on-the-fly:
 2. Click on "Advanced Options"
 3. Check "Edit evaluation prompts"
 4. Modify the system and user prompts as needed
-5. **IMPORTANT**: Keep the `{resume_text}` placeholder in the user prompt
-6. Click "Save Custom Prompts"
+5. **IMPORTANT**: Keep the `{resume_text}` placeholder (highlighted in **red bold text**) in the user prompt
+6. Changes are automatically saved when you click "Start Evaluation"
+7. Alternatively, click the blue "Save Custom Prompts" button to save without starting evaluation
 
 The custom prompts will be used for the current evaluation session.
 
@@ -158,6 +159,9 @@ When evaluating multiple resumes at once:
 - **Improved Evaluation Process Visualization** with phase indicators
 - **Fixed UI Issues** that required double-clicking navigation buttons
 - **Updated Tool Information** with clearer project context
+- **Improved Custom Prompt UX** with automatic saving and visual cues
+- **Enhanced User Interface** with color-coded buttons and highlighted placeholders
+- **Fixed HTML rendering issues** for better information display
 
 ## Roadmap and Future Improvements
 

@@ -7,7 +7,7 @@ This guide provides detailed instructions for using the Candidate Evaluation Too
 ### Accessing the Tool
 
 **Online (Preferred Method):**
-- Visit the Streamlit Cloud deployment at `https://your-app-name.streamlit.app/`
+- Visit the Streamlit Cloud deployment at `https://bulk-scoring-v1-0.streamlit.app/`
 - Enter password: `demo123` when prompted
 
 **Locally:**
@@ -48,9 +48,10 @@ You have three options for submitting resumes:
 1. Click "Advanced Options" to expand
 2. Check "Edit evaluation prompts"
 3. Modify the system prompt and/or user prompt as needed
-4. **IMPORTANT**: Keep the `{resume_text}` placeholder in the user prompt
-5. Click "Save Custom Prompts" to apply changes
-6. Click "Start Evaluation" to proceed
+4. **IMPORTANT**: Keep the `{resume_text}` placeholder (shown in **red bold text**) in the user prompt
+5. Any changes to the prompts will be **automatically saved** when you click "Start Evaluation"
+6. Alternatively, click the blue "Save Custom Prompts" button to save without starting the evaluation
+7. Click "Start Evaluation" to proceed
 
 ### Step 3: Evaluation Process
 
