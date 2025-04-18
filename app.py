@@ -7,6 +7,8 @@ import json
 import time
 import streamlit as st
 from pathlib import Path
+import re
+import io # Import io for BytesIO
 
 # Import utility modules
 from utils.resume_processor import (
@@ -39,8 +41,12 @@ if 'step' not in st.session_state:
     st.session_state.step = 1
 if 'resume_text' not in st.session_state:
     st.session_state.resume_text = ""
+if 'uploaded_resumes' not in st.session_state:
+    st.session_state.uploaded_resumes = []
 if 'evaluation_result' not in st.session_state:
     st.session_state.evaluation_result = None
+if 'evaluation_results_list' not in st.session_state:
+    st.session_state.evaluation_results_list = []
 if 'markdown_result' not in st.session_state:
     st.session_state.markdown_result = ""
 if 'raw_api_response' not in st.session_state:
@@ -75,7 +81,9 @@ def go_to_previous_step():
 def reset_app():
     st.session_state.step = 1
     st.session_state.resume_text = ""
+    st.session_state.uploaded_resumes = []
     st.session_state.evaluation_result = None
+    st.session_state.evaluation_results_list = []
     st.session_state.markdown_result = ""
     st.session_state.raw_api_response = ""
     st.session_state.filename = ""
@@ -167,32 +175,57 @@ if not st.session_state.authenticated:
 if st.session_state.step == 1:
     # Step 1: Resume Input
     st.markdown("## Step 1: Resume Input")
-    st.markdown("Upload a resume file or paste the resume text below.")
+    st.markdown("Upload one or more resume PDF files, paste text, or load a sample.")
     
     # Input tabs for different input methods
-    tab1, tab2, tab3 = st.tabs(["📤 Upload PDF", "📝 Paste Text", "🔍 Sample Resume"])
+    tab1, tab2, tab3 = st.tabs(["📤 Upload PDF(s)", "📝 Paste Text", "🔍 Sample Resume"])
     
     with tab1:
-        uploaded_file = st.file_uploader("Upload a resume PDF file", type=['pdf'])
-        if uploaded_file is not None:
-            try:
-                st.session_state.filename = uploaded_file.name
-                st.session_state.resume_text = extract_text_from_pdf_bytes(uploaded_file)
-                st.success(f"Successfully extracted text from {uploaded_file.name}")
-                
-                with st.expander("Preview Extracted Text"):
-                    st.text_area("Resume Text", st.session_state.resume_text, height=300)
+        # Allow multiple file uploads
+        uploaded_files = st.file_uploader(
+            "Upload resume PDF files", 
+            type=['pdf'], 
+            accept_multiple_files=True
+        )
+        if uploaded_files:
+            # Clear previous uploads if new ones are added
+            st.session_state.uploaded_resumes = []
+            st.session_state.resume_text = "" # Clear single text if files are uploaded
+            st.session_state.filename = "" 
+            
+            processed_files = []
+            error_files = []
+            
+            for uploaded_file in uploaded_files:
+                try:
+                    # Store file info (name and bytes) for later processing
+                    file_info = {
+                        "filename": uploaded_file.name,
+                        "bytes": uploaded_file.read() # Read bytes here
+                    }
+                    st.session_state.uploaded_resumes.append(file_info)
+                    processed_files.append(uploaded_file.name)
+                except Exception as e:
+                    error_files.append(uploaded_file.name)
+                    st.error(f"Error reading {uploaded_file.name}: {e}")
+            
+            if processed_files:
+                st.success(f"Successfully queued {len(processed_files)} file(s) for evaluation: {', '.join(processed_files)}")
+            if error_files:
+                 st.warning(f"Could not read {len(error_files)} file(s): {', '.join(error_files)}")
+
+            # Optional: Preview filenames
+            with st.expander("Uploaded Files"):
+                 st.write([f["filename"] for f in st.session_state.uploaded_resumes])
                     
-            except Exception as e:
-                st.error(f"Error processing PDF: {e}")
-    
     with tab2:
         pasted_text = st.text_area("Paste resume text here", height=300)
         if st.button("Use this text"):
             if pasted_text.strip():
                 st.session_state.resume_text = pasted_text
                 st.session_state.filename = "pasted_resume"
-                st.success("Resume text saved")
+                st.session_state.uploaded_resumes = [] # Clear file uploads if text is pasted
+                st.success("Pasted resume text saved")
             else:
                 st.warning("Please paste some text first")
     
@@ -201,7 +234,7 @@ if st.session_state.step == 1:
         if st.button("Load Sample Resume"):
             # Try to load the sample text file
             sample_txt_path = Path("samples/sample_resume.txt")
-            
+            sample_loaded = False
             if sample_txt_path.exists():
                 try:
                     with open(sample_txt_path, 'r') as file:
@@ -214,9 +247,11 @@ if st.session_state.step == 1:
                     with st.expander("Preview Sample Resume"):
                         st.text_area("Sample Resume", sample_text, height=300)
                         
+                    st.session_state.uploaded_resumes = [] # Clear file uploads
+                    sample_loaded = True
+                    
                 except Exception as e:
                     st.error(f"Error loading sample text: {e}")
-                    
             else:
                 # If text file doesn't exist, try PDF files
                 sample_paths = [
@@ -225,23 +260,23 @@ if st.session_state.step == 1:
                     Path("PDF-RESUMES/Adam_Jinnah_JuiceboxExport_2025-04-16_10.pdf")
                 ]
                 
-                sample_found = False
                 for sample_path in sample_paths:
                     if sample_path.exists():
                         try:
                             st.session_state.resume_text = extract_text_from_pdf_file(sample_path)
                             st.session_state.filename = sample_path.name
                             st.success(f"Loaded sample resume: {sample_path.name}")
-                            sample_found = True
                             
                             with st.expander("Preview Sample Resume Text"):
                                 st.text_area("Sample Resume", st.session_state.resume_text, height=300)
                             
+                            st.session_state.uploaded_resumes = [] # Clear file uploads
+                            sample_loaded = True
                             break
                         except Exception as e:
                             st.error(f"Error loading sample PDF: {e}")
                 
-                if not sample_found:
+                if not sample_loaded:
                     st.error("No sample resume files found. Please add a sample to the 'samples' directory.")
                     # Provide a dummy text as fallback
                     if st.button("Use Dummy Sample Instead"):
@@ -278,11 +313,15 @@ if st.session_state.step == 1:
                         
                         with st.expander("Preview Dummy Sample Resume"):
                             st.text_area("Dummy Sample", dummy_text, height=300)
+                            st.session_state.uploaded_resumes = [] # Clear file uploads
+    
+    # Determine if ready for next step
+    ready_to_proceed = bool(st.session_state.resume_text or st.session_state.uploaded_resumes)
     
     # Navigation
     col1, col2, col3 = st.columns([2, 2, 6])
     with col2:
-        if st.button("Next: Configure Evaluation", disabled=not st.session_state.resume_text):
+        if st.button("Next: Configure Evaluation", disabled=not ready_to_proceed):
             go_to_next_step()
 
 elif st.session_state.step == 2:
@@ -345,8 +384,8 @@ elif st.session_state.step == 2:
                 go_to_next_step()
 
 elif st.session_state.step == 3:
-    # Step 3: Evaluation Process
-    st.markdown("## Evaluating Resume")
+    # Step 3: Evaluation Process (Modified for Bulk)
+    st.markdown("## Evaluating Resume(s)")
     
     # Get API key
     api_key = get_api_key()
@@ -356,186 +395,184 @@ elif st.session_state.step == 3:
             go_to_previous_step()
         st.stop()
     
-    # Main content area with centered progress indicators
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # Determine if processing single text or multiple files
+    is_bulk_mode = bool(st.session_state.uploaded_resumes)
+    is_single_mode = bool(st.session_state.resume_text) and not is_bulk_mode
+    
+    # Check if we need to run evaluation
+    run_evaluation = False
+    if is_single_mode and not st.session_state.evaluation_result:
+        run_evaluation = True
+    elif is_bulk_mode and not st.session_state.evaluation_results_list:
+        run_evaluation = True
+        
+    if run_evaluation:
+        # Get common evaluation parameters (template, model)
+        templates = get_available_templates()
+        selected_template = templates[st.session_state.selected_template_index]
+        models = get_available_models()
+        selected_model = models[0] # Always use the first (best) model
+        
+        # Get prompts (including any custom ones)
+        if 'custom_system_prompt' in selected_template:
+            system_prompt = selected_template['custom_system_prompt']
+        else:
+            system_prompt = read_prompt_file(selected_template['system_prompt'])
+            
+        if 'custom_user_prompt' in selected_template:
+            user_prompt_template = selected_template['custom_user_prompt']
+        else:
+            user_prompt_template = read_prompt_file(selected_template['user_prompt'])
+        
+        # Prepare list of items to evaluate
+        items_to_evaluate = []
+        if is_single_mode:
+            items_to_evaluate.append({"filename": st.session_state.filename, "text": st.session_state.resume_text})
+        elif is_bulk_mode:
+            for resume_info in st.session_state.uploaded_resumes:
+                try:
+                    # Extract text from bytes stored earlier, wrapping in BytesIO
+                    resume_bytes_stream = io.BytesIO(resume_info["bytes"])
+                    resume_text = extract_text_from_pdf_bytes(resume_bytes_stream)
+                    items_to_evaluate.append({"filename": resume_info["filename"], "text": resume_text})
+                except Exception as e:
+                    # Store error instead of text for this file
+                    items_to_evaluate.append({"filename": resume_info["filename"], "error": f"Text extraction failed: {e}"})
+        
+        total_items = len(items_to_evaluate)
+        results_list = []
+        errors_list = []
+        # Add a configurable delay between API calls (in seconds)
+        # Increased delay to 10s to stay within likely TPM limits
+        API_CALL_DELAY = 10 
+        
+        # Progress tracking
+        st.markdown(f"Processing {total_items} resume(s)...")
         progress_bar = st.progress(0)
         status_text = st.empty()
-        result_preview = st.empty()
         
-        # Only run the evaluation if we don't already have a result
-        if not st.session_state.evaluation_result:
-            status_text.text("Starting evaluation...")
-            progress_bar.progress(10)
-            time.sleep(0.3)
+        for i, item in enumerate(items_to_evaluate):
+            filename = item["filename"]
+            status_text.text(f"Evaluating: {filename} ({i+1}/{total_items})")
             
-            # Show progress updates
-            status_text.text("Analyzing resume content...")
-            progress_bar.progress(30)
-            time.sleep(0.5)
-            
-            status_text.text("Evaluating skills and experience...")
-            progress_bar.progress(50)
-            time.sleep(0.5)
-            
-            status_text.text("Generating assessment...")
-            progress_bar.progress(70)
-            time.sleep(0.5)
+            if "error" in item:
+                # Handle extraction errors
+                error_msg = f"Could not extract text from {filename}: {item['error']}"
+                results_list.append({"filename": filename, "error": error_msg, "_raw_response": error_msg})
+                errors_list.append(filename)
+                progress_bar.progress((i + 1) / total_items)
+                continue # Skip evaluation if text extraction failed
+
+            resume_text = item["text"]
             
             try:
-                # Get the selected template
-                templates = get_available_templates()
-                selected_template = templates[st.session_state.selected_template_index]
-                
-                # Use default model (GPT-4.1)
-                models = get_available_models()
-                selected_model = models[0]  # Always use the first (best) model
-                
-                # Get prompts (including any custom ones)
-                if 'custom_system_prompt' in selected_template:
-                    system_prompt = selected_template['custom_system_prompt']
-                else:
-                    system_prompt = read_prompt_file(selected_template['system_prompt'])
-                    
-                if 'custom_user_prompt' in selected_template:
-                    user_prompt = selected_template['custom_user_prompt']
-                else:
-                    user_prompt = read_prompt_file(selected_template['user_prompt'])
-                
-                # Update status
-                status_text.text("Sending request to OpenAI...")
-                progress_bar.progress(85)
-                
-                # Run the evaluation
+                # Run the evaluation for this item
                 evaluation_result = evaluate_resume_with_ai(
-                    st.session_state.resume_text,
+                    resume_text,
                     system_prompt,
-                    user_prompt,
+                    user_prompt_template,
                     selected_model['value'],
                     api_key
                 )
                 
-                # Store the result in session state
-                st.session_state.evaluation_result = evaluation_result
-                
-                # Store raw response for debugging
-                if '_raw_response' in evaluation_result:
-                    st.session_state.raw_api_response = evaluation_result['_raw_response']
-                
-                # Create markdown representation - now using markdown directly
-                if 'markdown_content' in evaluation_result:
-                    markdown_result = evaluation_result['markdown_content']
-                else:
-                    markdown_result = create_markdown_from_api(evaluation_result, st.session_state.filename)
-                    
-                st.session_state.markdown_result = markdown_result
-                
-                # Update progress
-                status_text.text("Evaluation complete!")
-                progress_bar.progress(100)
-                time.sleep(0.5)
-                
-                # Clear the progress indicators
-                progress_bar.empty()
-                status_text.empty()
-                
-                # Show the evaluation result directly
-                st.success("Evaluation completed successfully!")
-                
-                # Display the markdown content
-                st.subheader("Evaluation Results")
-                show_markdown_content(markdown_result)
-                
-                # Add export options
-                st.markdown("### Export Options")
-                col1, col2 = st.columns(2)
-                with col1:
-                    download_button(
-                        markdown_result,
-                        f"{st.session_state.filename.split('.')[0]}_evaluation.md",
-                        "📥 Download as Markdown"
-                    )
-                
-                # Add debugging expander
-                with st.expander("Debug Information"):
-                    st.markdown("### Raw API Response")
-                    if st.session_state.raw_api_response:
-                        # Change language to "text" to prevent re-rendering markdown
-                        st.code(st.session_state.raw_api_response, language="text")
-                    else:
-                        st.code(json.dumps(evaluation_result, indent=2), language="json")
-                
-                # Navigation options
-                st.markdown("### Actions")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("← Back to Configuration"):
-                        go_to_step(2)
-                with col2:
-                    if st.button("Evaluate Another Resume"):
-                        reset_app()
+                # Store result (including filename)
+                result_item = {"filename": filename, **evaluation_result}
+                results_list.append(result_item)
                 
             except Exception as e:
-                # Clear progress indicators
-                progress_bar.empty()
-                status_text.empty()
-                
-                # Show error
-                st.error(f"Error during evaluation: {str(e)}")
-                
-                # More detailed error information for debugging
-                with st.expander("Error Details"):
-                    st.code(str(e))
-                    if hasattr(e, '__dict__'):
-                        st.json(e.__dict__)
-                
-                # Navigation options
-                st.markdown("### Actions")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("← Back to Configuration"):
-                        go_to_step(2)
-                with col2:
-                    if st.button("Try Again"):
-                        # Clear the result to force re-evaluation
-                        st.session_state.evaluation_result = None
-                        st.rerun()
-        else:
-            # We already have results, just display them
-            st.success("Evaluation completed successfully!")
+                # Handle evaluation errors
+                error_msg = f"Error evaluating {filename}: {e}"
+                raw_error_details = str(e)
+                # Try to get more details if available (e.g., from OpenAI error response)
+                if hasattr(e, 'response') and hasattr(e.response, 'text'):
+                    raw_error_details = e.response.text 
+                elif hasattr(e, 'message'): # Some OpenAI errors have a message attribute
+                     raw_error_details = e.message
+                     
+                results_list.append({"filename": filename, "error": error_msg, "_raw_response": raw_error_details})
+                errors_list.append(filename)
             
-            # Display the markdown content
-            st.subheader("Evaluation Results")
-            show_markdown_content(st.session_state.markdown_result)
+            # Update progress bar
+            progress_bar.progress((i + 1) / total_items)
+            # Add delay between calls if not the last item
+            if i < total_items - 1:
+                 time.sleep(API_CALL_DELAY) 
             
-            # Add export options
-            st.markdown("### Export Options")
-            col1, col2 = st.columns(2)
-            with col1:
-                download_button(
-                    st.session_state.markdown_result,
-                    f"{st.session_state.filename.split('.')[0]}_evaluation.md",
-                    "📥 Download as Markdown"
-                )
+        # Store results in session state
+        if is_single_mode:
+            st.session_state.evaluation_result = results_list[0] if results_list else None
+            st.session_state.markdown_result = results_list[0].get("markdown_content", "") if results_list and "error" not in results_list[0] else ""
+            st.session_state.raw_api_response = results_list[0].get("_raw_response", "") if results_list else ""
+        elif is_bulk_mode:
+            st.session_state.evaluation_results_list = results_list
+        
+        # Clear progress indicators
+        progress_bar.empty()
+        status_text.empty()
+        st.success(f"Evaluation complete for {total_items - len(errors_list)} out of {total_items} resume(s).")
+        if errors_list:
+            st.warning(f"Errors occurred for: {', '.join(errors_list)}")
+
+    # --- Display Results --- 
+    st.markdown("--- ")
+    st.subheader("Evaluation Results")
+    
+    results_to_display = []
+    if is_single_mode and st.session_state.evaluation_result:
+        results_to_display = [st.session_state.evaluation_result]
+    elif is_bulk_mode and st.session_state.evaluation_results_list:
+        results_to_display = st.session_state.evaluation_results_list
+        
+    if not results_to_display:
+        st.info("No evaluation results to display.")
+    else:
+        # Display results using expanders
+        for result in results_to_display:
+            filename = result.get("filename", "Unknown File")
+            header = f"📄 {filename}"
             
-            # Add debugging expander
-            with st.expander("Debug Information"):
-                st.markdown("### Raw API Response")
-                if st.session_state.raw_api_response:
-                    # Change language to "text" to prevent re-rendering markdown
-                    st.code(st.session_state.raw_api_response, language="text")
+            recommendation = ""
+            status = "" # Add status indicator
+            if "markdown_content" in result:
+                status = " - Status: Success"
+                match = re.search(r"🏆\s*RECOMMENDATION:\s*([\w\s]+)", result["markdown_content"])
+                if match:
+                    recommendation = f" - Recommendation: {match.group(1).strip()}"
+            elif "error" in result:
+                status = " - Status: Error"
+                
+            with st.expander(f"{header}{status}{recommendation}", expanded= (len(results_to_display) == 1) ): 
+                if "error" in result:
+                    st.error(f"Evaluation Error for {filename}:")
+                    # Show the raw error details directly
+                    st.code(result.get("_raw_response", "No details available."), language='text')
+                elif "markdown_content" in result:
+                    markdown_content = result["markdown_content"]
+                    download_info = {
+                        "filename": f"{filename.split('.')[0]}_evaluation.md",
+                        "text": "📥 Download Markdown"
+                    }
+                    # Display the markdown content with buttons (copy is non-functional)
+                    show_markdown_content(markdown_content, download_info=download_info, with_copy=True)
+                    
+                    # Debug info specific to this result
+                    with st.popover("Debug Info"):
+                        st.markdown("**Raw API Response**")
+                        st.code(result.get("_raw_response", "Not available."), language="text")
                 else:
-                    st.code(json.dumps(st.session_state.evaluation_result, indent=2), language="json")
-            
-            # Navigation options
-            st.markdown("### Actions")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("← Back to Configuration"):
-                    go_to_step(2)
-            with col2:
-                if st.button("Evaluate Another Resume"):
-                    reset_app()
+                     st.warning("No content available for this item.")
+
+    # --- Navigation Actions --- 
+    st.markdown("--- ")
+    st.markdown("### Actions")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("← Back to Configuration"):
+            go_to_step(2)
+    with col2:
+        if st.button("Evaluate Another Resume/Batch"):
+            reset_app()
+            st.rerun() # Rerun to clear display immediately
 
 # Footer
 show_footer()

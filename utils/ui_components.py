@@ -7,6 +7,8 @@ import base64
 import hashlib
 import re
 from pathlib import Path
+import json
+import html # Import html for escaping
 
 def set_page_config():
     """Set the page configuration"""
@@ -19,77 +21,78 @@ def set_page_config():
 
 def add_custom_css():
     """Add custom CSS for better styling"""
-    st.markdown("""
+    # Remove clipboard.js CDN link and initialization
+    st.markdown(f"""
     <style>
-        .main {
+        .main {{
             padding: 1rem 1rem;
-        }
-        .stAlert {
+        }}
+        .stAlert {{
             border-radius: 10px;
-        }
-        .stProgress > div > div {
+        }}
+        .stProgress > div > div {{
             border-radius: 10px;
-        }
-        .stButton button {
+        }}
+        .stButton button {{
             border-radius: 5px;
             height: 3em;
             width: 100%;
-        }
-        .card {
+        }}
+        .card {{
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
             background-color: #f7f7f7;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .top-score-card {
+        }}
+        .top-score-card {{
             background-color: #f0f7ff;
             border-left: 5px solid #4A90E2;
-        }
-        h1, h2, h3, h4 {
+        }}
+        h1, h2, h3, h4 {{
             font-weight: 600;
-        }
-        .footer {
+        }}
+        .footer {{
             text-align: center;
             margin-top: 2rem;
             opacity: 0.7;
             font-size: 0.8rem;
-        }
-        .score-badge {
+        }}
+        .score-badge {{
             background-color: #4A90E2;
             color: white;
             padding: 5px 10px;
             border-radius: 15px;
             font-weight: bold;
-        }
-        .sidebar-section {
+        }}
+        .sidebar-section {{
             background-color: #f1f3f6;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
-        }
-        .copy-btn {
-            background-color: #4A90E2;
-            color: white;
+        }}
+        .copy-btn {{
+            background-color: #cccccc; /* Grey out button */
+            color: #666666;
             border: none;
             border-radius: 5px;
             padding: 8px 16px;
             font-size: 14px;
-            cursor: pointer;
+            cursor: not-allowed; /* Indicate non-interactive */
             display: inline-flex;
             align-items: center;
             margin: 10px 0;
             transition: background-color 0.3s;
             width: 100%;
-            max-width: 300px;
-        }
-        .copy-btn:hover {
-            background-color: #3a7abd;
-        }
-        .copy-btn svg {
+            /* max-width: 300px; */ /* Removed to allow full width in container */
+        }}
+        .copy-btn:hover {{
+            background-color: #cccccc; /* No hover effect */
+        }}
+        .copy-btn svg {{
             margin-right: 8px;
-        }
-        .evaluation-md {
+        }}
+        .evaluation-md {{
             padding: 20px;
             background-color: #f8f9fa;
             border-radius: 5px;
@@ -98,8 +101,8 @@ def add_custom_css():
             line-height: 1.6;
             max-height: 500px;
             overflow-y: auto;
-        }
-        .toast-message {
+        }}
+        .toast-message {{
             position: fixed;
             bottom: 30px;
             right: 30px;
@@ -111,10 +114,36 @@ def add_custom_css():
             opacity: 0;
             transition: opacity 0.5s;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .show-toast {
+        }}
+        .show-toast {{
             opacity: 1;
-        }
+        }}
+        /* Class to properly hide elements */
+        .visually-hidden {{
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+            white-space: nowrap; /* Added for robustness */
+        }}
+        /* Style for button container */
+        .button-container {{
+            display: flex;
+            gap: 10px; /* Space between buttons */
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }}
+        .button-container .stMarkdown {{
+            width: 100%; /* Make markdown containers take full width */
+        }}
+        .button-container button, .button-container a {{
+             width: 100% !important; /* Make buttons/links take full width */
+             max-width: none !important; /* Override max-width from copy-btn */
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -272,83 +301,47 @@ def download_button(object_to_download, download_filename, button_text):
     dl_link = custom_css + f'<a href="data:file/txt;base64,{b64}" id="{button_uuid}" download="{download_filename}">{button_text}</a>'
     return st.markdown(dl_link, unsafe_allow_html=True)
 
-def copy_button(text_to_copy, button_text="📋 Copy to Clipboard"):
-    """Create a button that copies text to clipboard using JavaScript"""
-    # Create a unique ID based on hashing a portion of the content
-    text_hash = hashlib.md5(text_to_copy[:100].encode()).hexdigest()[:10]
-    button_id = f"copy_btn_{text_hash}"
-    toast_id = f"toast_{text_hash}"
-    textarea_id = f"text_area_{text_hash}"
-    
-    # Create a hidden textarea with the content
-    # This approach is more reliable than trying to pass the content directly to JS
-    hidden_field = f"""
-    <textarea 
-        id="{textarea_id}" 
-        style="position: absolute; left: -9999px; top: 0;" 
-        readonly
-    >{text_to_copy}</textarea>
-    """
-    
-    # Toast notification
-    toast_html = f"""
-    <div id="{toast_id}" class="toast-message">
-        ✅ Copied to clipboard!
-    </div>
-    """
-    
-    # JavaScript to handle copying and showing/hiding toast using navigator.clipboard
-    js_code = f"""
-    <script>
-    document.getElementById("{button_id}").addEventListener("click", function() {{
-        var textToCopy = document.getElementById("{textarea_id}").value;
-        var buttonElement = this;
-        var toast = document.getElementById("{toast_id}");
-        
-        // Use navigator.clipboard.writeText API
-        navigator.clipboard.writeText(textToCopy).then(function() {{
-            // Success: Update button text and show toast
-            buttonElement.innerHTML = "✅ Copied!";
-            toast.classList.add("show-toast");
-            
-            // Hide toast after 3 seconds
-            setTimeout(function() {{
-                toast.classList.remove("show-toast");
-            }}, 3000);
-            
-            // Reset button text after 3 seconds
-            setTimeout(function() {{
-                buttonElement.innerHTML = "{button_text}"; // Use original button text
-            }}, 3000);
-            
-        }}, function(err) {{
-            // Error: Log to console and maybe show an error message
-            console.error('Async: Could not copy text: ', err);
-            buttonElement.innerHTML = "❌ Copy Failed";
-            // Optional: Show error toast
-            // setTimeout(() => {{ buttonElement.innerHTML = "{button_text}"; }}, 3000);
-        }});
-    }});
-    </script>
-    """
-    
-    # Button HTML
-    button_html = f"""
-    <button id="{button_id}" class="copy-btn">{button_text}</button>
-    {hidden_field}
-    {toast_html}
-    {js_code}
-    """
-    
-    return st.markdown(button_html, unsafe_allow_html=True)
+def copy_button(text_to_copy="", button_text="📋 Copy (Not Working)"):
+    """Render a disabled-looking copy button placeholder"""
+    # Create a unique ID just for rendering
+    button_id = f"copy_btn_placeholder_{hashlib.md5(button_text.encode()).hexdigest()[:10]}"
 
-def show_markdown_content(markdown_content, with_copy=True):
-    """Display markdown content in a nice format with optional copy button"""
+    # Button HTML - styled as disabled, no JS functionality
+    button_html = f"""
+    <button id="{button_id}" class="copy-btn" disabled title="Copy functionality currently disabled">
+        {button_text}
+    </button>
+    """
+    return button_html # Return raw HTML string
+
+def show_markdown_content(markdown_content, download_info=None, with_copy=True):
+    """Display markdown content with optional (non-functional) copy and download buttons side-by-side"""
     # Display the markdown content in a styled container
     st.markdown("<div class='evaluation-md'>", unsafe_allow_html=True)
     st.markdown(markdown_content)
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Add copy button if requested
-    if with_copy:
-        copy_button(markdown_content) 
+    # Button Row
+    st.markdown('<div class="button-container">', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Add non-functional copy button if requested
+        if with_copy:
+            copy_button_html = copy_button() 
+            st.markdown(copy_button_html, unsafe_allow_html=True)
+        else:
+            st.markdown("<div></div>", unsafe_allow_html=True) # Placeholder
+
+    with col2:
+        # Add download button if info provided
+        if download_info and isinstance(download_info, dict):
+            download_button(
+                object_to_download=markdown_content,
+                download_filename=download_info.get("filename", "evaluation.md"),
+                button_text=download_info.get("text", "📥 Download Markdown")
+            )
+        else:
+            st.markdown("<div></div>", unsafe_allow_html=True) # Placeholder
+    
+    st.markdown('</div>', unsafe_allow_html=True) 
